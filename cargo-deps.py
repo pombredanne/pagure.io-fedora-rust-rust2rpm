@@ -88,7 +88,8 @@ for f in files:
                 continue
             req, con = parse_req(dep["req"])
             assert req is not None
-            if args.requires:
-                print_dep(dep["name"], req.spec, req.kind)
-            if args.conflicts and con is not None:
-                print_dep(dep["name"], con.spec, REQ_TO_CON[con.kind])
+            for feature in dep["features"] or [None]:
+                if args.requires:
+                    print_dep(dep["name"], req.spec, req.kind, feature=feature)
+                if args.conflicts and con is not None:
+                    print_dep(dep["name"], con.spec, REQ_TO_CON[con.kind], feature=feature)
