@@ -69,14 +69,17 @@ args = parser.parse_args()
 
 files = args.file or sys.stdin.readlines()
 
-def print_dep(name, spec, kind="="):
-    print("crate({}) {} {}".format(name, kind.replace("==", "="), spec))
+def print_dep(name, spec, kind="=", feature=None):
+    f_part = "({})".format(feature) if feature is not None else ""
+    print("crate({}){} {} {}".format(name, f_part, kind.replace("==", "="), spec))
 
 for f in files:
     f = f.rstrip()
     md = get_metadata(f)
     if args.provides:
         print_dep(md["name"], md["version"])
+        for feature in md["features"]:
+            print_dep(md["name"], md["version"], feature=feature)
     if args.requires or args.conflicts:
         for dep in md["dependencies"]:
             if dep["kind"] is not None:
