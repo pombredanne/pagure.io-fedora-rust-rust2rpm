@@ -1,0 +1,2 @@
+%__cargo_provides  %{_rpmconfigdir}/cargo-deps.py --provides
+%__cargo_path      ^%{cargo_registry}/[^/]+/Cargo\\.toml$
