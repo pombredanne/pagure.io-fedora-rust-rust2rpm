@@ -1,5 +1,4 @@
 import argparse
-import itertools
 import os
 import tarfile
 import tempfile
@@ -28,11 +27,11 @@ ExclusiveArch:  %{rust_arches}
 
 BuildRequires:  rust
 BuildRequires:  cargo
-{% for br, bc in zip(buildrequires, buildconflicts) %}
+{% for br in buildrequires %}
 BuildRequires:  {{ br }}
-{% if bc is not none %}
+{% endfor %}
+{% for bc in buildconflicts %}
 BuildConflicts: {{ bc }}
-{% endif %}
 {% endfor %}
 
 %description
@@ -44,11 +43,11 @@ BuildArch:      noarch
 {% for prov in provides %}
 Provides:       {{ prov }}
 {% endfor %}
-{% for req, con in zip(requires, conflicts) %}
+{% for req in requires %}
 Requires:       {{ req }}
-{% if con is not none %}
+{% endfor %}
+{% for con in conflicts %}
 Conflicts:      {{ con }}
-{% endif %}
 {% endfor %}
 
 %description    devel
@@ -72,7 +71,6 @@ Conflicts:      {{ con }}
 """
 JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                trim_blocks=True, lstrip_blocks=True)
-JINJA_ENV.globals.update(zip=itertools.zip_longest)
 
 
 def run_depgen(*params):
