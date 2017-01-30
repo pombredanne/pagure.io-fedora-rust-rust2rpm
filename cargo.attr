@@ -1,4 +1,4 @@
-%__cargo_provides  %{_rpmconfigdir}/cargo-deps.py --provides
-%__cargo_requires  %{_rpmconfigdir}/cargo-deps.py --requires
-%__cargo_conflicts %{_rpmconfigdir}/cargo-deps.py --conflicts
+%__cargo_provides  %{_rpmconfigdir}/cargodeps.py --provides
+%__cargo_requires  %{_rpmconfigdir}/cargodeps.py --requires
+%__cargo_conflicts %{_rpmconfigdir}/cargodeps.py --conflicts
 %__cargo_path      ^%{cargo_registry}/[^/]+/Cargo\\.toml$

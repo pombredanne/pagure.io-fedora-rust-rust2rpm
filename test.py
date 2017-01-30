@@ -12,7 +12,7 @@ pub fn say_hello() {
     println!("Hello, World!");
 }
 """
-DEPGEN = os.path.join(os.path.dirname(__file__), "cargo-deps.py")
+DEPGEN = os.path.join(os.path.dirname(__file__), "cargodeps.py")
 
 
 @pytest.fixture
