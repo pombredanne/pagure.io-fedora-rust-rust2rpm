@@ -81,6 +81,10 @@ for f in files:
         for dep in md["dependencies"]:
             if dep["optional"]:
                 continue
+            if dep["kind"] is not None:
+                # kind: build -> build dependencies
+                # kind: dev   -> test dependencies
+                continue
             req, con = parse_req(dep["req"])
             assert req is not None
             if args.requires:
