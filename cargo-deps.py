@@ -59,37 +59,38 @@ def parse_req(s):
         raise NotImplementedError("More than two ranges are unsupported, probably something is wrong with metadata")
     assert False
 
-parser = argparse.ArgumentParser()
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument("-P", "--provides", action="store_true", help="Print Provides")
-group.add_argument("-R", "--requires", action="store_true", help="Print Requires")
-group.add_argument("-C", "--conflicts", action="store_true", help="Print Conflicts")
-parser.add_argument("file", nargs="*", help="Path(s) to Cargo.toml")
-args = parser.parse_args()
-
-files = args.file or sys.stdin.readlines()
-
 def print_dep(name, spec, kind="=", feature=None):
     f_part = "/{}".format(feature) if feature is not None else ""
     print("crate({}{}) {} {}".format(name, f_part, kind.replace("==", "="), spec))
 
-for f in files:
-    f = f.rstrip()
-    md = get_metadata(f)
-    if args.provides:
-        print_dep(md["name"], md["version"])
-        for feature in md["features"]:
-            print_dep(md["name"], md["version"], feature=feature)
-    if args.requires or args.conflicts:
-        for dep in md["dependencies"]:
-            if dep["kind"] is not None:
-                # kind: build -> build dependencies
-                # kind: dev   -> test dependencies
-                continue
-            req, con = parse_req(dep["req"])
-            assert req is not None
-            for feature in dep["features"] or [None]:
-                if args.requires:
-                    print_dep(dep["name"], req.spec, req.kind, feature=feature)
-                if args.conflicts and con is not None:
-                    print_dep(dep["name"], con.spec, REQ_TO_CON[con.kind], feature=feature)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("-P", "--provides", action="store_true", help="Print Provides")
+    group.add_argument("-R", "--requires", action="store_true", help="Print Requires")
+    group.add_argument("-C", "--conflicts", action="store_true", help="Print Conflicts")
+    parser.add_argument("file", nargs="*", help="Path(s) to Cargo.toml")
+    args = parser.parse_args()
+
+    files = args.file or sys.stdin.readlines()
+
+    for f in files:
+        f = f.rstrip()
+        md = get_metadata(f)
+        if args.provides:
+            print_dep(md["name"], md["version"])
+            for feature in md["features"]:
+                print_dep(md["name"], md["version"], feature=feature)
+        if args.requires or args.conflicts:
+            for dep in md["dependencies"]:
+                if dep["kind"] is not None:
+                    # kind: build -> build dependencies
+                    # kind: dev   -> test dependencies
+                    continue
+                req, con = parse_req(dep["req"])
+                assert req is not None
+                for feature in dep["features"] or [None]:
+                    if args.requires:
+                        print_dep(dep["name"], req.spec, req.kind, feature=feature)
+                    if args.conflicts and con is not None:
+                        print_dep(dep["name"], con.spec, REQ_TO_CON[con.kind], feature=feature)
