@@ -70,8 +70,8 @@ args = parser.parse_args()
 files = args.file or sys.stdin.readlines()
 
 def print_dep(name, spec, kind="=", feature=None):
-    f_part = "({})".format(feature) if feature is not None else ""
-    print("crate({}){} {} {}".format(name, f_part, kind.replace("==", "="), spec))
+    f_part = "/{}".format(feature) if feature is not None else ""
+    print("crate({}{}) {} {}".format(name, f_part, kind.replace("==", "="), spec))
 
 for f in files:
     f = f.rstrip()
