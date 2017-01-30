@@ -79,8 +79,6 @@ for f in files:
         print_dep(md["name"], md["version"])
     if args.requires or args.conflicts:
         for dep in md["dependencies"]:
-            if dep["optional"]:
-                continue
             if dep["kind"] is not None:
                 # kind: build -> build dependencies
                 # kind: dev   -> test dependencies
