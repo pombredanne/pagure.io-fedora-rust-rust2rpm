@@ -31,6 +31,8 @@ class Dependency(object):
 
 class Metadata(object):
     def __init__(self, path):
+        self.name = None
+        self.version = None
         self._provides = []
         self._requires = []
         self._conflicts = []
@@ -83,8 +85,8 @@ class Metadata(object):
 
     def _parse_metadata(self, metadata):
         md = metadata["packages"][0]
-        name = md["name"]
-        version = semver.SpecItem("={}".format(md["version"]))
+        self.name = md["name"]
+        self.version = semver.SpecItem("={}".format(md["version"]))
 
         # Provides
         self._provides = [Dependency(name, version)]
