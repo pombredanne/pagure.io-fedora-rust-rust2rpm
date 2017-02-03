@@ -30,9 +30,9 @@ class Dependency(object):
         return "crate({}{}) {} {}".format(self.name, f_part, kind.replace("==", "="), self.spec.spec)
 
 class Metadata(object):
-    def __init__(self, path):
+    def __init__(self):
         self.name = None
-        self.version = None
+        self._version = None
         self._provides = []
         self._requires = []
         self._conflicts = []
@@ -41,10 +41,47 @@ class Metadata(object):
         self._test_requires = []
         self._test_conflicts = []
 
+    @classmethod
+    def from_json(cls, metadata):
+        self = cls()
+
+        md = metadata["packages"][0]
+        self.name = md["name"]
+        self._version = semver.SpecItem("={}".format(md["version"]))
+
+        # Provides
+        self._provides = [Dependency(self.name, self._version)]
+        for feature in md["features"]:
+            self._provides.append(Dependency(self.name, self._version, feature=feature))
+
+        # Dependencies
+        for dep in md["dependencies"]:
+            if dep["kind"] is None:
+                requires = self._requires
+                conflicts = self._conflicts
+            elif dep["kind"] == "build":
+                requires = self._build_requires
+                conflicts = self._build_conflicts
+            elif dep["kind"] == "dev":
+                requires = self._test_requires
+                conflicts = self._test_conflicts
+            else:
+                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
+            req, con = self._parse_req(dep["req"])
+            assert req is not None
+            for feature in dep["features"] or [None]:
+                requires.append(Dependency(dep["name"], req, feature=feature))
+                if con is not None:
+                    conflicts.append(Dependency(dep["name"], con, feature=feature, inverted=True))
+
+        return self
+
+    @classmethod
+    def from_file(cls, path):
         # --no-deps is to disable recursive scanning of deps
         metadata = subprocess.check_output(["cargo", "metadata", "--no-deps",
                                             "--manifest-path={}".format(path)])
-        self._parse_metadata(json.loads(metadata))
+        return cls.from_json(json.loads(metadata))
 
     @staticmethod
     def _parse_req(s):
@@ -87,37 +124,9 @@ class Metadata(object):
                                       "probably something is wrong with metadata")
         assert False
 
-    def _parse_metadata(self, metadata):
-        md = metadata["packages"][0]
-        self.name = md["name"]
-        self.version = semver.SpecItem("={}".format(md["version"]))
-
-        # Provides
-        self._provides = [Dependency(self.name, self.version)]
-        for feature in md["features"]:
-            self._provides.append(Dependency(self.name, self.version, feature=feature))
-
-        # Requires, Conflicts
-        self._requires = []
-        self._conflicts = []
-        for dep in md["dependencies"]:
-            if dep["kind"] is None:
-                requires = self._requires
-                conflicts = self._conflicts
-            elif dep["kind"] == "build":
-                requires = self._build_requires
-                conflicts = self._build_conflicts
-            elif dep["kind"] == "dev":
-                requires = self._test_requires
-                conflicts = self._test_conflicts
-            else:
-                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
-            req, con = self._parse_req(dep["req"])
-            assert req is not None
-            for feature in dep["features"] or [None]:
-                requires.append(Dependency(dep["name"], req, feature=feature))
-                if con is not None:
-                    conflicts.append(Dependency(dep["name"], con, feature=feature, inverted=True))
+    @property
+    def version(self):
+        return str(self._version.spec) if self._version is not None else None
 
     @property
     def provides(self):
@@ -168,7 +177,7 @@ if __name__ == "__main__":
 
     for f in files:
         f = f.rstrip()
-        md = Metadata(f)
+        md = Metadata.from_file(f)
         if args.provides:
             print_deps(md.provides)
         if args.requires:
