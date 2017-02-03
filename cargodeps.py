@@ -89,9 +89,9 @@ class Metadata(object):
         self.version = semver.SpecItem("={}".format(md["version"]))
 
         # Provides
-        self._provides = [Dependency(name, version)]
+        self._provides = [Dependency(self.name, self.version)]
         for feature in md["features"]:
-            self._provides.append(Dependency(name, version, feature=feature))
+            self._provides.append(Dependency(self.name, self.version, feature=feature))
 
         # Requires, Conflicts
         self._requires = []
