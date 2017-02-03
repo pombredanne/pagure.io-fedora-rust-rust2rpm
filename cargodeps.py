@@ -36,6 +36,10 @@ class Metadata(object):
         self._provides = []
         self._requires = []
         self._conflicts = []
+        self._build_requires = []
+        self._build_conflicts = []
+        self._test_requires = []
+        self._test_conflicts = []
 
         # --no-deps is to disable recursive scanning of deps
         metadata = subprocess.check_output(["cargo", "metadata", "--no-deps",
@@ -97,16 +101,23 @@ class Metadata(object):
         self._requires = []
         self._conflicts = []
         for dep in md["dependencies"]:
-            if dep["kind"] is not None:
-                # kind: build -> build dependencies
-                # kind: dev   -> test dependencies
-                continue
+            if dep["kind"] is None:
+                requires = self._requires
+                conflicts = self._conflicts
+            elif dep["kind"] == "build":
+                requires = self._build_requires
+                conflicts = self._build_conflicts
+            elif dep["kind"] == "dev":
+                requires = self._test_requires
+                conflicts = self._test_conflicts
+            else:
+                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
             req, con = self._parse_req(dep["req"])
             assert req is not None
             for feature in dep["features"] or [None]:
-                self._requires.append(Dependency(dep["name"], req, feature=feature))
+                requires.append(Dependency(dep["name"], req, feature=feature))
                 if con is not None:
-                    self._conflicts.append(Dependency(dep["name"], con, feature=feature, inverted=True))
+                    conflicts.append(Dependency(dep["name"], con, feature=feature, inverted=True))
 
     @property
     def provides(self):
@@ -120,12 +131,32 @@ class Metadata(object):
     def conflicts(self):
         return self._conflicts[:]
 
+    @property
+    def build_requires(self):
+        return self._requires + self._build_requires
+
+    @property
+    def build_conflicts(self):
+        return self._conflicts + self._build_conflicts
+
+    @property
+    def test_requires(self):
+        return self._test_requires[:]
+
+    @property
+    def test_conflicts(self):
+        return self._test_conflicts[:]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-P", "--provides", action="store_true", help="Print Provides")
     group.add_argument("-R", "--requires", action="store_true", help="Print Requires")
     group.add_argument("-C", "--conflicts", action="store_true", help="Print Conflicts")
+    group.add_argument("-BR", "--build-requires", action="store_true", help="Print BuildRequires")
+    group.add_argument("-BC", "--build-conflicts", action="store_true", help="Print BuildConflicts")
+    group.add_argument("-TR", "--test-requires", action="store_true", help="Print TestRequires")
+    group.add_argument("-TC", "--test-conflicts", action="store_true", help="Print TestConflicts")
     parser.add_argument("file", nargs="*", help="Path(s) to Cargo.toml")
     args = parser.parse_args()
 
@@ -144,3 +175,11 @@ if __name__ == "__main__":
             print_deps(md.requires)
         if args.conflicts:
             print_deps(md.conflicts)
+        if args.build_requires:
+            print_deps(md.build_requires)
+        if args.build_conflicts:
+            print_deps(md.build_conflicts)
+        if args.test_requires:
+            print_deps(md.test_requires)
+        if args.test_conflicts:
+            print_deps(md.test_conflicts)
