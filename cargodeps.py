@@ -104,7 +104,7 @@ class Metadata(object):
                         else:
                             upper = ver.next_major()
                     else:
-                      upper = ver.next_major()
+                        upper = ver.next_major()
                 elif req.kind == req.KIND_TILDE:
                     if ver.minor is None:
                         upper = ver.next_major()
