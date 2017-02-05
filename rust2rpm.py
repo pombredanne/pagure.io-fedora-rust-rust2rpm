@@ -7,6 +7,7 @@ import sys
 
 import jinja2
 import requests
+import tqdm
 
 import cargodeps
 
@@ -115,14 +116,16 @@ if __name__ == "__main__":
 
     if not os.path.isdir(CACHEDIR):
         os.mkdir(CACHEDIR)
-    cratef = os.path.join(CACHEDIR, "{}-{}.crate".format(args.crate, args.version))
+    cratef_base = "{}-{}.crate".format(args.crate, args.version)
+    cratef = os.path.join(CACHEDIR, cratef_base)
     if not os.path.isfile(cratef):
         url = requests.compat.urljoin(API_URL, "crates/{}/{}/download#".format(args.crate, args.version))
         req = requests.get(url, stream=True)
         req.raise_for_status()
+        total = int(req.headers["Content-Length"])
         with open(cratef, "wb") as f:
-            # FIXME: should we use req.iter_content() and specify custom chunk size?
-            for chunk in req:
+            for chunk in tqdm.tqdm(req.iter_content(), "Downloading {}".format(cratef_base),
+                                   total=total, unit="B", unit_scale=True):
                 f.write(chunk)
 
     files = []
