@@ -40,24 +40,24 @@ rust2rpm.pyz:
 cargodeps.pyz:
 	$(call mkzipapp,cargodeps)
 
-install: install-rust2rpm
-
-install-all: install-rust2rpm install-cargodeps
+install: install-rust2rpm install-cargodeps
 
 install-rust2rpm: rust2rpm.pyz
-	install -d -m 0755 $(DESTDIR)$(BINDIR)
 	@echo "Installing rust2rpm zipapp"
-	install -m 0755 -p rust2rpm.pyz $(DESTDIR)$(BINDIR)/rust2rpm
+	install -d -m 0755                          $(DESTDIR)$(BINDIR)
+	install    -m 0755 -p rust2rpm.pyz          $(DESTDIR)$(BINDIR)/rust2rpm
 
 install-cargodeps: cargodeps.pyz
-	install -d -m 0755 $(DESTDIR)$(RPMDIR)
 	@echo "Installing cargodeps zipapp"
-	install -m 0755 -p cargodeps.pyz $(DESTDIR)$(RPMDIR)/cargodeps.py
+	install -d -m 0755                          $(DESTDIR)$(RPMDIR)
+	install    -m 0755 -p cargodeps.pyz         $(DESTDIR)$(RPMDIR)/cargodeps.py
 	@echo "Installing RPM macro"
-	install -m 0644 -p data/macros.rust-srpm $(DESTDIR)$(RPMDIR)/macros.d/macros.rust-srpm
-	install -m 0644 -p data/macros.rust $(DESTDIR)$(RPMDIR)/macros.d/macros.rust
-	install -m 0644 -p data/macros.cargo $(DESTDIR)$(RPMDIR)/macros.d/macros.cargo
-	install -m 0644 -p data/cargo.attr $(DESTDIR)$(RPMDIR)/fileattrs/cargo.attr
+	install -d -m 0755                          $(DESTDIR)$(RPMDIR)/macros.d
+	install    -m 0644 -p data/macros.rust-srpm $(DESTDIR)$(RPMDIR)/macros.d/macros.rust-srpm
+	install    -m 0644 -p data/macros.rust      $(DESTDIR)$(RPMDIR)/macros.d/macros.rust
+	install    -m 0644 -p data/macros.cargo     $(DESTDIR)$(RPMDIR)/macros.d/macros.cargo
+	install -d -m 0755                          $(DESTDIR)$(RPMDIR)/fileattrs
+	install    -m 0644 -p data/cargo.attr       $(DESTDIR)$(RPMDIR)/fileattrs/cargo.attr
 
 clean:
 	@-rm -f rust2rpm.pyz cargodeps.pyz
