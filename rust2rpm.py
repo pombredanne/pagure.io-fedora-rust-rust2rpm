@@ -9,7 +9,7 @@ import jinja2
 import requests
 import tqdm
 
-import cargodeps
+from rust2rpm import Metadata
 
 XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 CACHEDIR = os.path.join(XDG_CACHE_HOME, "rust2rpm")
@@ -93,8 +93,7 @@ Conflicts:      {{ con }}
 JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                trim_blocks=True, lstrip_blocks=True)
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--target", choices=("epel-7", "fedora-26"), required=True,
                         help="Distribution target")
@@ -134,7 +133,10 @@ if __name__ == "__main__":
         toml = "{}/{}-{}/Cargo.toml".format(tmpdir, args.crate, args.version)
         assert os.path.isfile(toml)
 
-        metadata = cargodeps.Metadata.from_file(toml)
+        metadata = Metadata.from_file(toml)
 
     template = JINJA_ENV.from_string(TEMPLATE)
     print(template.render(target=args.target, md=metadata))
+
+if __name__ == "__main__":
+    main()
