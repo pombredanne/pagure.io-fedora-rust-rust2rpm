@@ -50,7 +50,7 @@ install-rust2rpm: rust2rpm.pyz
 install-cargodeps: cargodeps.pyz
 	@echo "Installing cargodeps zipapp"
 	install -d -m 0755                          $(DESTDIR)$(RPMDIR)
-	install    -m 0755 -p cargodeps.pyz         $(DESTDIR)$(RPMDIR)/cargodeps.py
+	install    -m 0755 -p cargodeps.pyz         $(DESTDIR)$(RPMDIR)/cargodeps
 	@echo "Installing RPM macro"
 	install -d -m 0755                          $(DESTDIR)$(RPMDIR)/macros.d
 	install    -m 0644 -p data/macros.rust-srpm $(DESTDIR)$(RPMDIR)/macros.d/macros.rust-srpm
