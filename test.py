@@ -7,6 +7,8 @@ import textwrap
 
 import pytest
 
+from rust2rpm import Metadata
+
 DUMMY_LIB = """
 pub fn say_hello() {
     println!("Hello, World!");
@@ -34,12 +36,6 @@ def cargo_toml(request):
     request.addfinalizer(finalize)
 
     return make_cargo_toml
-
-
-def run(*params):
-    cmd = [sys.executable, DEPGEN, *params]
-    out = subprocess.check_output(cmd, universal_newlines=True)
-    return out.split("\n")[:-1]
 
 
 @pytest.mark.parametrize("toml, provides, requires, conflicts", [
@@ -278,6 +274,7 @@ def run(*params):
 
 ])
 def test_depgen(toml, provides, requires, conflicts, cargo_toml):
-    assert run("--provides", cargo_toml(toml)) == provides
-    assert run("--requires", cargo_toml(toml)) == requires
-    assert run("--conflicts", cargo_toml(toml)) == conflicts
+    md = Metadata.from_file(cargo_toml(toml))
+    assert [str(x) for x in md.provides] == provides
+    assert [str(x) for x in md.requires] == requires
+    assert [str(x) for x in md.conflicts] == conflicts
