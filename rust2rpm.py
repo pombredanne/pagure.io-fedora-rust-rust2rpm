@@ -21,7 +21,7 @@ Version:        {{ md.version }}
 Release:        1%{?dist}
 Summary:        # FIXME
 
-License:        {{ md.license if md.license is not none else "# FIXME" }}
+License:        {{ md.license|default("# FIXME") }}
 URL:            https://crates.io/crates/{{ md.name }}
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
 
