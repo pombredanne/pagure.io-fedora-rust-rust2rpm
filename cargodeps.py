@@ -32,6 +32,8 @@ class Dependency(object):
 class Metadata(object):
     def __init__(self):
         self.name = None
+        self.license = None
+        self.license_file = None
         self._version = None
         self._provides = []
         self._requires = []
@@ -47,6 +49,8 @@ class Metadata(object):
 
         md = metadata["packages"][0]
         self.name = md["name"]
+        self.license = md["license"]
+        self.license_file = md["license_file"]
         self._version = semver.SpecItem("={}".format(md["version"]))
 
         # Provides

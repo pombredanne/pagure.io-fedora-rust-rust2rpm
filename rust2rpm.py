@@ -21,7 +21,7 @@ Version:        {{ md.version }}
 Release:        1%{?dist}
 Summary:        # FIXME
 
-License:        # FIXME
+License:        {{ md.license if md.license is not none else "# FIXME" }}
 URL:            https://crates.io/crates/{{ md.name }}
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
 
@@ -80,7 +80,9 @@ Conflicts:      {{ con }}
 %endif
 
 %files devel
-%license # FIXME
+{% if md.license_file is not none %}
+%license {{ md.license_file }}
+{% endif %}
 %{cargo_registry}/%{crate}-%{version}/
 
 %changelog
