@@ -94,11 +94,6 @@ JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                trim_blocks=True, lstrip_blocks=True)
 
 
-def run_depgen(*params):
-    cmd = [sys.executable, cargodeps.__file__, *params]
-    out = subprocess.check_output(cmd, universal_newlines=True)
-    return out.split("\n")[:-1]
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--target", choices=("epel-7", "fedora-26"), required=True,
