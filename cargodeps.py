@@ -82,9 +82,11 @@ class Metadata(object):
 
     @classmethod
     def from_file(cls, path):
+        do_decode = sys.version_info < (3, 6)
         # --no-deps is to disable recursive scanning of deps
         metadata = subprocess.check_output(["cargo", "metadata", "--no-deps",
-                                            "--manifest-path={}".format(path)])
+                                            "--manifest-path={}".format(path)],
+                                           universal_newlines=do_decode)
         return cls.from_json(json.loads(metadata))
 
     @staticmethod
