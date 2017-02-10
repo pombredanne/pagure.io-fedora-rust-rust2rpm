@@ -11,6 +11,14 @@ REQ_TO_CON = {">": "<=",
               ">=": "<",
               "<=": ">"}
 
+class Target(object):
+    def __init__(self, kind, name):
+        self.kind = kind
+        self.name = name
+
+    def __repr__(self):
+        return "<Target {self.kind}|{self.name}>".format(self=self)
+
 class Dependency(object):
     def __init__(self, name, spec, feature=None, inverted=False):
         self.name = name
@@ -32,6 +40,7 @@ class Metadata(object):
         self.license = None
         self.license_file = None
         self._version = None
+        self._targets = []
         self._provides = []
         self._requires = []
         self._conflicts = []
@@ -49,6 +58,9 @@ class Metadata(object):
         self.license = md["license"]
         self.license_file = md["license_file"]
         self._version = semver.SpecItem("={}".format(md["version"]))
+
+        # Targets
+        self._targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
 
         # Provides
         self._provides = [Dependency(self.name, self._version)]
@@ -130,6 +142,10 @@ class Metadata(object):
     @property
     def version(self):
         return str(self._version.spec) if self._version is not None else None
+
+    @property
+    def targets(self):
+        return self._targets[:]
 
     @property
     def provides(self):

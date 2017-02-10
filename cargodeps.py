@@ -6,6 +6,7 @@ from rust2rpm import Metadata
 def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("-t", "--target-kinds", action="store_true", help="Print target kinds")
     group.add_argument("-P", "--provides", action="store_true", help="Print Provides")
     group.add_argument("-R", "--requires", action="store_true", help="Print Requires")
     group.add_argument("-C", "--conflicts", action="store_true", help="Print Conflicts")
@@ -25,6 +26,8 @@ def main():
     for f in files:
         f = f.rstrip()
         md = Metadata.from_file(f)
+        if args.target_kinds:
+            print("\n".join(set(tgt.kind for tgt in md.targets)))
         if args.provides:
             print_deps(md.provides)
         if args.requires:
