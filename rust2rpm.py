@@ -74,6 +74,9 @@ Conflicts:      {{ con }}
 %autosetup -n %{crate}-%{version}
 %cargo_prep
 
+%build
+%cargo_build
+
 %install
 %cargo_install
 
