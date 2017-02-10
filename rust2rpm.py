@@ -75,7 +75,7 @@ Conflicts:      {{ con }}
 %cargo_prep
 
 %install
-%cargo_install_crate %{crate}-%{version}
+%cargo_install
 
 %if %{with check}
 %check
