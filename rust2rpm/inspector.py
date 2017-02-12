@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from rust2rpm import Metadata
+from . import Metadata
 
 def main():
     parser = argparse.ArgumentParser()

@@ -1,4 +1,4 @@
-%__cargo_provides  %{_rpmconfigdir}/cargodeps --provides
-%__cargo_requires  %{_rpmconfigdir}/cargodeps --requires
-%__cargo_conflicts %{_rpmconfigdir}/cargodeps --conflicts
+%__cargo_provides  %{_bindir}/cargo-inspector --provides
+%__cargo_requires  %{_bindir}/cargo-inspector --requires
+%__cargo_conflicts %{_bindir}/cargo-inspector --conflicts
 %__cargo_path      ^%{cargo_registry}/[^/]+/Cargo\\.toml$

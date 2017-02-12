@@ -11,7 +11,7 @@ import jinja2.exceptions
 import requests
 import tqdm
 
-from rust2rpm import Metadata
+from . import Metadata
 
 # See: http://jinja.pocoo.org/docs/latest/extensions/#example-extension
 class RaiseExtension(jinja2.ext.Extension):

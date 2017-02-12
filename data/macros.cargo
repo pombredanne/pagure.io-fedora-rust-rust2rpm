@@ -1,6 +1,6 @@
 %__cargo %{_bindir}/cargo
 %__cargo_common_opts --release %{?_smp_mflags}
-%__cargo_inspector %{_rpmconfigdir}/cargodeps
+%__cargo_inspector %{_bindir}/cargo-inspector
 
 %cargo_registry %{_usrsrc}/rust
 

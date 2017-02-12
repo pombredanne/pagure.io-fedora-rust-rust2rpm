@@ -1,4 +1,4 @@
 __pycache__/
 /.tox/
-/cargodeps.pyz
-/rust2rpm.pyz
+/dist/
+/rust2rpm.egg-info/
