@@ -39,6 +39,7 @@ class Metadata(object):
         self.name = None
         self.license = None
         self.license_file = None
+        self.description = None
         self._version = None
         self._targets = []
         self._provides = []
@@ -57,6 +58,7 @@ class Metadata(object):
         self.name = md["name"]
         self.license = md["license"]
         self.license_file = md["license_file"]
+        self.description = md.get("description")
         self._version = semver.SpecItem("={}".format(md["version"]))
 
         # Targets
