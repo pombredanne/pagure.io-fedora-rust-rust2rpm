@@ -37,6 +37,7 @@ class RaiseExtension(jinja2.ext.Extension):
     def _raise(self, msg, caller):
         raise jinja2.exceptions.TemplateRuntimeError(msg)
 
+DEFAULT_EDITOR = "vi"
 XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 CACHEDIR = os.path.join(XDG_CACHE_HOME, "rust2rpm")
 API_URL = "https://crates.io/api/v1/"
@@ -175,6 +176,21 @@ JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                extensions=[RaiseExtension],
                                trim_blocks=True, lstrip_blocks=True)
 
+def detect_editor():
+    terminal = os.getenv("TERM")
+    terminal_is_dumb = terminal is None or terminal == "dumb"
+    editor = None
+    if not terminal_is_dumb:
+        editor = os.getenv("VISUAL")
+    if editor is None:
+        editor = os.getenv("EDITOR")
+    if editor is None:
+        if terminal_is_dumb:
+            raise Exception("Terminal is dumb, but EDITOR unset")
+        else:
+            editor = DEFAULT_EDITOR
+    return editor
+
 def file_mtime(path):
     t = datetime.fromtimestamp(os.stat(path).st_mtime, timezone.utc)
     return t.astimezone().isoformat()
@@ -190,9 +206,7 @@ def main():
     args = parser.parse_args()
 
     if args.patch:
-        editor = os.getenv("EDITOR")
-        if editor is None:
-            raise Exception("-p, --patch requires $EDITOR environment variable to be set")
+        editor = detect_editor()
 
     if args.version is None:
         # Now we need to get latest version
