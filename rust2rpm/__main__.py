@@ -1,4 +1,6 @@
 import argparse
+from datetime import datetime, timezone
+import difflib
 import os
 import tarfile
 import tempfile
@@ -81,6 +83,10 @@ Summary:        {{ description_lines|join(" ")|trim }}
 License:        {{ md.license|default("# FIXME") }}
 URL:            https://crates.io/crates/{{ md.name }}
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
+{% if patch_file is not none %}
+# Initial patched metadata
+Patch0:         {{ patch_file }}
+{% endif %}
 
 ExclusiveArch:  %{rust_arches}
 
@@ -134,7 +140,7 @@ which use %{crate} from crates.io.
 
 {% endif %}
 %prep
-%autosetup -n %{crate}-%{version}
+%autosetup -n %{crate}-%{version} -p1
 %cargo_prep
 
 %build
@@ -169,13 +175,24 @@ JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                extensions=[RaiseExtension],
                                trim_blocks=True, lstrip_blocks=True)
 
+def file_mtime(path):
+    t = datetime.fromtimestamp(os.stat(path).st_mtime, timezone.utc)
+    return t.astimezone().isoformat()
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--target", choices=("epel-7", "fedora-26"), required=True,
                         help="Distribution target")
+    parser.add_argument("-p", "--patch", action="store_true",
+                        help="Do initial patching of Cargo.toml")
     parser.add_argument("crate", help="crates.io name")
     parser.add_argument("version", nargs="?", help="crates.io version")
     args = parser.parse_args()
+
+    if args.patch:
+        editor = os.getenv("EDITOR")
+        if editor is None:
+            raise Exception("-p, --patch requires $EDITOR environment variable to be set")
 
     if args.version is None:
         # Now we need to get latest version
@@ -206,13 +223,36 @@ def main():
                 if not os.path.abspath(os.path.join(target_dir, n)).startswith(target_dir):
                     raise Exception("Unsafe filenames!")
             archive.extractall(target_dir)
-        toml = "{}/{}-{}/Cargo.toml".format(tmpdir, args.crate, args.version)
+        toml_relpath = "{}-{}/Cargo.toml".format(args.crate, args.version)
+        toml = "{}/{}".format(tmpdir, toml_relpath)
         assert os.path.isfile(toml)
+
+        if args.patch:
+            mtime_before = file_mtime(toml)
+            with open(toml, "r") as fobj:
+                toml_before = fobj.readlines()
+            subprocess.check_call([editor, toml])
+            mtime_after = file_mtime(toml)
+            with open(toml, "r") as fobj:
+                toml_after = fobj.readlines()
+            diff = list(difflib.unified_diff(toml_before, toml_after,
+                                             fromfile=toml_relpath, tofile=toml_relpath,
+                                             fromfiledate=mtime_before, tofiledate=mtime_after))
 
         metadata = Metadata.from_file(toml)
 
     template = JINJA_ENV.from_string(TEMPLATE)
-    print(template.render(target=args.target, md=metadata))
+
+    if args.patch and len(diff) > 0:
+        patch_file = "{}-{}-fix-metadata.diff".format(args.crate, args.version)
+    else:
+        patch_file = None
+
+    print("# {}.spec".format(args.crate))
+    print(template.render(target=args.target, md=metadata, patch_file=patch_file))
+    if patch_file is not None:
+        print("# {}".format(patch_file))
+        print("".join(diff), end="")
 
 if __name__ == "__main__":
     main()
