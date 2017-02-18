@@ -152,6 +152,8 @@ def file_mtime(path):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-", "--stdout", action="store_true",
+                        help="Print spec and patches into stdout")
     parser.add_argument("-t", "--target", choices=("epel-7", "fedora-26"), required=True,
                         help="Distribution target")
     parser.add_argument("-p", "--patch", action="store_true",
@@ -241,11 +243,20 @@ def main():
     else:
         raise ValueError("No bins and no libs")
 
-    print("# {}.spec".format(spec_basename))
-    print(template.render(target=args.target, md=metadata, patch_file=patch_file, **kwargs))
-    if patch_file is not None:
-        print("# {}".format(patch_file))
-        print("".join(diff), end="")
+    spec_file = "{}.spec".format(spec_basename)
+    spec_contents = template.render(target=args.target, md=metadata, patch_file=patch_file, **kwargs)
+    if args.stdout:
+        print("# {}".format(spec_file))
+        print(spec_contents)
+        if patch_file is not None:
+            print("# {}".format(patch_file))
+            print("".join(diff), end="")
+    else:
+        with open(spec_file, "w") as fobj:
+            fobj.write(spec_contents)
+        if patch_file is not None:
+            with open(patch_file, "w") as fobj:
+                fobj.writelines(diff)
 
 if __name__ == "__main__":
     main()
