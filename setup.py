@@ -2,7 +2,7 @@ from setuptools import setup
 
 ARGS = dict(
     name="rust2rpm",
-    version="1",
+    version="2",
     description="Convert Rust crates to RPM",
     license="MIT",
     keywords="rust cargo rpm",
