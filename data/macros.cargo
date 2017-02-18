@@ -26,9 +26,9 @@ registry = "https://crates.io"\
 replace-with = "local-registry"\
 EOF}
 
-%cargo_build() %{expand:%__cargo build %{__cargo_common_opts} %{?1}}
+%cargo_build %__cargo build %{__cargo_common_opts}
 
-%cargo_test() %{expand:%__cargo test %{__cargo_common_opts} %{?1}}
+%cargo_test %__cargo test %{__cargo_common_opts}
 
 %cargo_install %{expand:(\
 set -eu                                                                   \
