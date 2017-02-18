@@ -4,8 +4,8 @@
 
 %cargo_registry %{_usrsrc}/rust
 
-%__cargo_is_lib() %{expand:%__cargo_inspector --target-kinds Cargo.toml | grep -q -F lib}
-%__cargo_is_bin() %{expand:%__cargo_inspector --target-kinds Cargo.toml | grep -q -F bin}
+%__cargo_is_lib() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F "$(printf 'lib\\\nproc-macro')"
+%__cargo_is_bin() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F bin
 
 %cargo_prep (\
 set -eu \
