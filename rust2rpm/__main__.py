@@ -5,7 +5,6 @@ import os
 import tarfile
 import tempfile
 import subprocess
-import sys
 
 import jinja2
 import jinja2.ext
@@ -186,7 +185,6 @@ def main():
                                    total=total, unit="B", unit_scale=True):
                 f.write(chunk)
 
-    files = []
     with tempfile.TemporaryDirectory() as tmpdir:
         target_dir = "{}/".format(tmpdir)
         with tarfile.open(cratef, "r") as archive:
