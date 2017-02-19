@@ -112,6 +112,9 @@ which use %{crate} from crates.io.
 
 {% if include_main %}
 %files
+{% if md.license_file is not none %}
+%license {{ md.license_file }}
+{% endif %}
 {% for bin in bins %}
 %{_bindir}/{{ bin.name }}
 {% endfor %}
