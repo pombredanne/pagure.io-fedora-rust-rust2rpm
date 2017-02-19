@@ -11,11 +11,8 @@ def main():
     group.add_argument("-t", "--target-kinds", action="store_true", help="Print target kinds")
     group.add_argument("-P", "--provides", action="store_true", help="Print Provides")
     group.add_argument("-R", "--requires", action="store_true", help="Print Requires")
-    group.add_argument("-C", "--conflicts", action="store_true", help="Print Conflicts")
     group.add_argument("-BR", "--build-requires", action="store_true", help="Print BuildRequires")
-    group.add_argument("-BC", "--build-conflicts", action="store_true", help="Print BuildConflicts")
     group.add_argument("-TR", "--test-requires", action="store_true", help="Print TestRequires")
-    group.add_argument("-TC", "--test-conflicts", action="store_true", help="Print TestConflicts")
     parser.add_argument("file", nargs="*", help="Path(s) to Cargo.toml")
     args = parser.parse_args()
 
@@ -38,16 +35,10 @@ def main():
             print_deps(md.provides)
         if args.requires:
             print_deps(md.requires)
-        if args.conflicts:
-            print_deps(md.conflicts)
         if args.build_requires:
             print_deps(md.build_requires)
-        if args.build_conflicts:
-            print_deps(md.build_conflicts)
         if args.test_requires:
             print_deps(md.test_requires)
-        if args.test_conflicts:
-            print_deps(md.test_conflicts)
 
 if __name__ == "__main__":
     main()

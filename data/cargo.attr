@@ -1,4 +1,3 @@
 %__cargo_provides  %{_bindir}/cargo-inspector --provides
 %__cargo_requires  %{_bindir}/cargo-inspector --requires
-%__cargo_conflicts %{_bindir}/cargo-inspector --conflicts
 %__cargo_path      ^%{cargo_registry}/[^/]+/Cargo\\.toml$

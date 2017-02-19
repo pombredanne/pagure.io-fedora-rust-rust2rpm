@@ -6,11 +6,6 @@ import sys
 
 import semantic_version as semver
 
-REQ_TO_CON = {">": "<=",
-              "<": ">=",
-              ">=": "<",
-              "<=": ">"}
-
 class Target(object):
     def __init__(self, kind, name):
         self.kind = kind
@@ -20,97 +15,73 @@ class Target(object):
         return "<Target {self.kind}|{self.name}>".format(self=self)
 
 class Dependency(object):
-    def __init__(self, name, spec, feature=None, inverted=False):
+    def __init__(self, name, req, features=(), provides=False):
         self.name = name
-        self.spec = spec
-        self.feature = feature
-        self.inverted = inverted
+        if "*" in req:
+            raise NotImplementedError("https://github.com/rbarrois/python-semanticversion/issues/51")
+        self.spec = self._parse_req(req)
+        self.features = features
+        self.provides = provides
+        if self.provides:
+            if len(self.spec.specs) > 1 or \
+               (len(self.spec.specs) == 1 and self.spec.specs[0].kind != self.spec.specs[0].KIND_EQUAL):
+                raise Exception("Provides can't be applied to ranged version, {!r}".format(self.spec))
 
     def __repr__(self):
-        f_part = "/{}".format(self.feature) if self.feature is not None else ""
-        if self.inverted:
-            kind = REQ_TO_CON[self.spec.kind]
-        else:
-            kind = self.spec.kind
-        return "crate({}{}) {} {}".format(self.name, f_part, kind.replace("==", "="), self.spec.spec)
-
-class Metadata(object):
-    def __init__(self):
-        self.name = None
-        self.license = None
-        self.license_file = None
-        self.description = None
-        self._version = None
-        self._targets = []
-        self._provides = []
-        self._requires = []
-        self._conflicts = []
-        self._build_requires = []
-        self._build_conflicts = []
-        self._test_requires = []
-        self._test_conflicts = []
-
-    @classmethod
-    def from_json(cls, metadata):
-        self = cls()
-
-        md = metadata["packages"][0]
-        self.name = md["name"]
-        self.license = md["license"]
-        self.license_file = md["license_file"]
-        self.description = md.get("description")
-        self._version = semver.SpecItem("={}".format(md["version"]))
-
-        # Targets
-        self._targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
-
-        # Provides
-        self._provides = [Dependency(self.name, self._version)]
-        for feature in md["features"]:
-            self._provides.append(Dependency(self.name, self._version, feature=feature))
-
-        # Dependencies
-        for dep in md["dependencies"]:
-            if dep["kind"] is None:
-                requires = self._requires
-                conflicts = self._conflicts
-            elif dep["kind"] == "build":
-                requires = self._build_requires
-                conflicts = self._build_conflicts
-            elif dep["kind"] == "dev":
-                requires = self._test_requires
-                conflicts = self._test_conflicts
+        def req_to_str(name, spec=None, feature=None):
+            f_part = "/{}".format(feature) if feature is not None else ""
+            basestr = "crate({}{})".format(name, f_part)
+            if spec is not None:
+                if spec.kind == spec.KIND_EQUAL:
+                    spec.kind = spec.KIND_SHORTEQ
+                return "{} {} {}".format(basestr, spec.kind, spec.spec)
             else:
-                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
-            req, con = self._parse_req(dep["req"])
-            assert req is not None
-            for feature in dep["features"] or [None]:
-                requires.append(Dependency(dep["name"], req, feature=feature))
-                if con is not None:
-                    conflicts.append(Dependency(dep["name"], con, feature=feature, inverted=True))
+                return basestr
 
-        return self
+        if self.provides:
+            spec = self.spec.specs[0]
+            provs = [req_to_str(self.name, spec)]
+            for feature in self.features:
+                provs.append(req_to_str(self.name, spec, feature))
+            return " and ".join(provs)
 
-    @classmethod
-    def from_file(cls, path):
-        do_decode = sys.version_info < (3, 6)
-        # --no-deps is to disable recursive scanning of deps
-        metadata = subprocess.check_output(["cargo", "metadata", "--no-deps",
-                                            "--manifest-path={}".format(path)],
-                                           universal_newlines=do_decode)
-        return cls.from_json(json.loads(metadata))
+        reqs = [req_to_str(self.name, spec=req) for req in self.spec.specs]
+        features = [req_to_str(self.name, feature=feature) for feature in self.features]
+
+        use_rich = False
+        if len(reqs) > 1:
+            reqstr = "({})".format(" with ".join(reqs))
+            use_rich = True
+        elif len(reqs) == 1:
+            reqstr = reqs[0]
+        else:
+            reqstr = ""
+        if len(features) > 0:
+            featurestr = " with ".join(features)
+            use_rich = True
+        else:
+            featurestr = ""
+
+        if use_rich:
+            if reqstr and featurestr:
+                return "({} with {})".format(reqstr, featurestr)
+            elif reqstr and not featurestr:
+                return reqstr
+            elif not reqstr and featurestr:
+                return "({})".format(featurestr)
+            else:
+                assert False
+        else:
+            return reqstr
 
     @staticmethod
     def _parse_req(s):
-        if "*" in s:
-            raise NotImplementedError("https://github.com/rbarrois/python-semanticversion/issues/51")
         spec = semver.Spec(s.replace(" ", ""))
-        specs = spec.specs
-        if len(specs) == 1:
-            req = specs[0]
+        parsed = []
+        for req in spec.specs:
+            ver = req.spec
+            coerced = semver.Version.coerce(str(ver))
             if req.kind in (req.KIND_CARET, req.KIND_TILDE):
-                ver = req.spec
-                lower = semver.Version.coerce(str(ver))
                 if req.kind == req.KIND_CARET:
                     if ver.major == 0:
                         if ver.minor is not None:
@@ -129,21 +100,71 @@ class Metadata(object):
                         upper = ver.next_minor()
                 else:
                     assert False
-                return (semver.Spec(">={}".format(lower)).specs[0],
-                        semver.Spec("<{}".format(upper)).specs[0])
+                parsed.append(">={}".format(coerced))
+                parsed.append("<{}".format(upper))
+            elif req.kind == req.KIND_NEQ:
+                parsed.append(">{}".format(coerced))
+                parsed.append("<{}".format(coerced))
+            elif req.kind in (req.KIND_EQUAL, req.KIND_GT, req.KIND_GTE, req.KIND_LT, req.KIND_LTE):
+                parsed.append("{}{}".format(req.kind, coerced))
             else:
-                return (req, None)
-        elif len(specs) == 2:
-            return (specs[0], specs[1])
-        else:
-            # it's something uber-complicated
-            raise NotImplementedError("More than two ranges are unsupported, "
-                                      "probably something is wrong with metadata")
-        assert False
+                assert False, req.kind
+        return semver.Spec(",".join(parsed))
 
-    @property
-    def version(self):
-        return str(self._version.spec) if self._version is not None else None
+class Metadata(object):
+    def __init__(self):
+        self.name = None
+        self.license = None
+        self.license_file = None
+        self.description = None
+        self.version = None
+        self._targets = []
+        self._provides = []
+        self._requires = []
+        self._build_requires = []
+        self._test_requires = []
+
+    @classmethod
+    def from_json(cls, metadata):
+        self = cls()
+
+        md = metadata["packages"][0]
+        self.name = md["name"]
+        self.license = md["license"]
+        self.license_file = md["license_file"]
+        self.description = md.get("description")
+        self.version = md["version"]
+        version = "={}".format(self.version)
+
+        # Targets
+        self._targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
+
+        # Provides
+        provides = Dependency(self.name, version, features=md["features"], provides=True)
+        self._provides = str(provides).split(" and ")
+
+        # Dependencies
+        for dep in md["dependencies"]:
+            if dep["kind"] is None:
+                requires = self._requires
+            elif dep["kind"] == "build":
+                requires = self._build_requires
+            elif dep["kind"] == "dev":
+                requires = self._test_requires
+            else:
+                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
+            requires.append(Dependency(dep["name"], dep["req"], features=dep["features"]))
+
+        return self
+
+    @classmethod
+    def from_file(cls, path):
+        do_decode = sys.version_info < (3, 6)
+        # --no-deps is to disable recursive scanning of deps
+        metadata = subprocess.check_output(["cargo", "metadata", "--no-deps",
+                                            "--manifest-path={}".format(path)],
+                                           universal_newlines=do_decode)
+        return cls.from_json(json.loads(metadata))
 
     @property
     def targets(self):
@@ -158,21 +179,9 @@ class Metadata(object):
         return self._requires[:]
 
     @property
-    def conflicts(self):
-        return self._conflicts[:]
-
-    @property
     def build_requires(self):
         return self._requires + self._build_requires
 
     @property
-    def build_conflicts(self):
-        return self._conflicts + self._build_conflicts
-
-    @property
     def test_requires(self):
         return self._test_requires[:]
-
-    @property
-    def test_conflicts(self):
-        return self._test_conflicts[:]
