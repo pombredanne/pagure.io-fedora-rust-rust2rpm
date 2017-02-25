@@ -46,7 +46,7 @@ if %__cargo_is_lib; then                                                  \
   %{__mkdir} -p $REG_DIR                                                  \
   %__cargo package -l | xargs cp --parents -p -t $REG_DIR                 \
 %if ! %{with check}                                                       \
-  %{__mv} -f $REG_DIR/Cargo.toml{.orig,}                                  \
+  %{__install} -p Cargo.toml.orig $REG_DIR/Cargo.toml                     \
 %endif                                                                    \
   echo '{"files":{},"package":""}' > $REG_DIR/.cargo-checksum.json        \
 fi \
