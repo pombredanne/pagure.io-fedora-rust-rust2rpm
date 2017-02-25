@@ -29,7 +29,7 @@ replace-with = "local-registry"\
 EOF\
 %if ! %{with check} \
 # https://github.com/rust-lang/cargo/issues/3732 \
-%{__awk} -i inplace -v INPLACE_SUFFIX=.orig '/^\\\[dev-dependencies\\\]$/{f=1;next} /^\\\[/{f=0}; !f' Cargo.toml \
+%{__awk} -i inplace -v INPLACE_SUFFIX=.orig '/^\\\[dev-dependencies/{f=1;next} /^\\\[/{f=0}; !f' Cargo.toml \
 %endif \
 )
 
