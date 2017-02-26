@@ -180,7 +180,7 @@ def cargo_toml(request):
      ["(crate(libc) >= 1.2.3 with crate(libc) < 1.3.0)"]),
 
     # Wildcard requirements
-    pytest.mark.xfail(("""
+    ("""
      [package]
      name = "hello"
      version = "0.0.0"
@@ -189,8 +189,8 @@ def cargo_toml(request):
      libc = "*"
      """,
      ["crate(hello) = 0.0.0"],
-     ["crate(libc) >= 0.0.0"])),
-    pytest.mark.xfail(("""
+     ["crate(libc)"]),
+    ("""
      [package]
      name = "hello"
      version = "0.0.0"
@@ -199,8 +199,8 @@ def cargo_toml(request):
      libc = "1.*"
      """,
      ["crate(hello) = 0.0.0"],
-     ["(crate(libc) >= 1.0.0 with crate(libc) < 2.0.0)"])),
-    pytest.mark.xfail(("""
+     ["(crate(libc) >= 1.0.0 with crate(libc) < 2.0.0)"]),
+    ("""
      [package]
      name = "hello"
      version = "0.0.0"
@@ -209,7 +209,7 @@ def cargo_toml(request):
      libc = "1.2.*"
      """,
      ["crate(hello) = 0.0.0"],
-     ["(crate(libc) >= 1.2.0 with crate(libc) < 1.3.0)"])),
+     ["(crate(libc) >= 1.2.0 with crate(libc) < 1.3.0)"]),
 
     # Inequality requirements
     ("""

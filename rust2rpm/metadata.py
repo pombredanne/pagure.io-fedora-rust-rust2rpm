@@ -17,8 +17,6 @@ class Target(object):
 class Dependency(object):
     def __init__(self, name, req, features=(), provides=False):
         self.name = name
-        if "*" in req:
-            raise NotImplementedError("https://github.com/rbarrois/python-semanticversion/issues/51")
         self.spec = self._parse_req(req)
         self.features = features
         self.provides = provides
@@ -34,6 +32,13 @@ class Dependency(object):
             if spec is not None:
                 if spec.kind == spec.KIND_EQUAL:
                     spec.kind = spec.KIND_SHORTEQ
+                if spec.kind == spec.KIND_ANY:
+                    if spec.spec == "":
+                        # Just wildcard
+                        return basestr
+                    else:
+                        # Wildcard in string
+                        assert False, spec.spec
                 return "{} {} {}".format(basestr, spec.kind, spec.spec)
             else:
                 return basestr
@@ -76,10 +81,16 @@ class Dependency(object):
 
     @staticmethod
     def _parse_req(s):
+        if "*" in s and s != "*":
+            # XXX: https://github.com/rbarrois/python-semanticversion/issues/51
+            s = "~{}".format(s.replace(".*", "", 1))
         spec = semver.Spec(s.replace(" ", ""))
         parsed = []
         for req in spec.specs:
             ver = req.spec
+            if req.kind == req.KIND_ANY:
+                parsed.append("*")
+                continue
             coerced = semver.Version.coerce(str(ver))
             if req.kind in (req.KIND_CARET, req.KIND_TILDE):
                 if req.kind == req.KIND_CARET:
