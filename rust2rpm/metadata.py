@@ -130,10 +130,10 @@ class Metadata(object):
         self.description = None
         self.version = None
         self._targets = []
-        self._provides = []
-        self._requires = []
-        self._build_requires = []
-        self._test_requires = []
+        self.provides = []
+        self.requires = []
+        self.build_requires = []
+        self.test_requires = []
 
     @classmethod
     def from_json(cls, metadata):
@@ -148,20 +148,20 @@ class Metadata(object):
         version = "={}".format(self.version)
 
         # Targets
-        self._targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
+        self.targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
 
         # Provides
         provides = Dependency(self.name, version, features=md["features"], provides=True)
-        self._provides = str(provides).split(" and ")
+        self.provides = str(provides).split(" and ")
 
         # Dependencies
         for dep in md["dependencies"]:
             if dep["kind"] is None:
-                requires = self._requires
+                requires = self.requires
             elif dep["kind"] == "build":
-                requires = self._build_requires
+                requires = self.build_requires
             elif dep["kind"] == "dev":
-                requires = self._test_requires
+                requires = self.test_requires
             else:
                 raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
             requires.append(Dependency(dep["name"], dep["req"], features=dep["features"]))
@@ -176,23 +176,3 @@ class Metadata(object):
                                             "--manifest-path={}".format(path)],
                                            universal_newlines=do_decode)
         return cls.from_json(json.loads(metadata))
-
-    @property
-    def targets(self):
-        return self._targets[:]
-
-    @property
-    def provides(self):
-        return self._provides[:]
-
-    @property
-    def requires(self):
-        return self._requires[:]
-
-    @property
-    def build_requires(self):
-        return self._requires + self._build_requires
-
-    @property
-    def test_requires(self):
-        return self._test_requires[:]

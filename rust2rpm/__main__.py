@@ -48,11 +48,21 @@ ExclusiveArch:  %{rust_arches}
 
 BuildRequires:  rust
 BuildRequires:  cargo
+{% if md.requires|length > 0 %}
+# [dependencies]
+{% for req in md.requires|sort(attribute="name") %}
+BuildRequires:  {{ req }}
+{% endfor %}
+{% endif %}
+{% if md.build_requires|length > 0 %}
+# [build-dependencies]
 {% for req in md.build_requires|sort(attribute="name") %}
 BuildRequires:  {{ req }}
 {% endfor %}
+{% endif %}
 {% if md.test_requires|length > 0 %}
 %if %{with check}
+# [dev-dependencies]
 {% for req in md.test_requires|sort(attribute="name") %}
 BuildRequires:  {{ req }}
 {% endfor %}
@@ -70,9 +80,18 @@ BuildArch:      noarch
 {% for prv in md.provides %}
 Provides:       {{ prv }}
 {% endfor %}
+{% if md.requires|length > 0 %}
+# [dependencies]
 {% for req in md.requires|sort(attribute="name") %}
 Requires:       {{ req }}
 {% endfor %}
+{% endif %}
+{% if md.build_requires|length > 0 %}
+# [build-dependencies]
+{% for req in md.build_requires|sort(attribute="name") %}
+Requires:       {{ req }}
+{% endfor %}
+{% endif %}
 {% endif %}
 
 %description {{ name_devel }}

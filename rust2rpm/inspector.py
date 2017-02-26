@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import sys
 
 from . import Metadata
@@ -33,10 +34,8 @@ def main():
             print("\n".join(set(tgt.kind for tgt in md.targets)))
         if args.provides:
             print_deps(md.provides)
-        if args.requires:
-            print_deps(md.requires)
-        if args.build_requires:
-            print_deps(md.build_requires)
+        if args.requires or args.build_requires:
+            print_deps(list(itertools.chain(md.requires, md.build_requires)))
         if args.test_requires:
             print_deps(md.test_requires)
 
