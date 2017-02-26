@@ -48,6 +48,7 @@ ExclusiveArch:  %{rust_arches}
 
 BuildRequires:  rust
 BuildRequires:  cargo
+{% if include_build_requires %}
 {% if md.requires|length > 0 %}
 # [dependencies]
 {% for req in md.requires|sort(attribute="name") %}
@@ -68,6 +69,7 @@ BuildRequires:  {{ req }}
 {% endfor %}
 %endif
 {% endif %}
+{% endif %}
 
 %description
 %{summary}.
@@ -76,10 +78,12 @@ BuildRequires:  {{ req }}
 %package     {{ name_devel }}
 Summary:        %{summary}
 BuildArch:      noarch
-{% if target == "epel-7" %}
+{% if include_provides %}
 {% for prv in md.provides %}
 Provides:       {{ prv }}
 {% endfor %}
+{% endif %}
+{% if include_requires %}
 {% if md.requires|length > 0 %}
 # [dependencies]
 {% for req in md.requires|sort(attribute="name") %}
@@ -166,7 +170,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-", "--stdout", action="store_true",
                         help="Print spec and patches into stdout")
-    parser.add_argument("-t", "--target", choices=("epel-7", "fedora-26"), required=True,
+    parser.add_argument("-t", "--target", action="store",
+                        choices=("plain", "fedora"), default="fedora",
                         help="Distribution target")
     parser.add_argument("-p", "--patch", action="store_true",
                         help="Do initial patching of Cargo.toml")
@@ -254,8 +259,19 @@ def main():
     else:
         raise ValueError("No bins and no libs")
 
+    if args.target == "fedora":
+        kwargs["include_build_requires"] = True
+        kwargs["include_provides"] = False
+        kwargs["include_requires"] = False
+    elif args.target == "plain":
+        kwargs["include_build_requires"] = True
+        kwargs["include_provides"] = True
+        kwargs["include_requires"] = True
+    else:
+        assert False, "Unknown target {!r}".format(args.target)
+
     spec_file = "{}.spec".format(spec_basename)
-    spec_contents = template.render(target=args.target, md=metadata, patch_file=patch_file, **kwargs)
+    spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)
     if args.stdout:
         print("# {}".format(spec_file))
         print(spec_contents)
