@@ -299,6 +299,7 @@ def main():
     else:
         with open(spec_file, "w") as fobj:
             fobj.write(spec_contents)
+            fobj.write("\n")
         if patch_file is not None:
             with open(patch_file, "w") as fobj:
                 fobj.writelines(diff)
