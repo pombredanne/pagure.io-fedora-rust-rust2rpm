@@ -2,8 +2,10 @@ import argparse
 from datetime import datetime, timezone
 import difflib
 import os
+import shutil
 import tarfile
 import tempfile
+import time
 import subprocess
 
 import jinja2
@@ -141,6 +143,8 @@ which use %{crate} from crates.io.
 
 {% endif %}
 %changelog
+* {{ date }} {{ packager|default("rust2rpm <nobody@fedoraproject.org>") }} - {{ md.version }}-1
+- Initial package
 """
 JINJA_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined,
                                trim_blocks=True, lstrip_blocks=True)
@@ -159,6 +163,19 @@ def detect_editor():
         else:
             editor = DEFAULT_EDITOR
     return editor
+
+def detect_packager():
+    rpmdev_packager = shutil.which("rpmdev-packager")
+    if rpmdev_packager is not None:
+        return subprocess.check_output(rpmdev_packager, universal_newlines=True).strip()
+
+    git = shutil.which("git")
+    if git is not None:
+        name = subprocess.check_output([git, "config", "user.name"], universal_newlines=True).strip()
+        email = subprocess.check_output([git, "config", "user.email"], universal_newlines=True).strip()
+        return "{} <{}>".format(name, email)
+
+    return None
 
 def file_mtime(path):
     t = datetime.fromtimestamp(os.stat(path).st_mtime, timezone.utc)
@@ -267,6 +284,9 @@ def main():
         kwargs["include_requires"] = True
     else:
         assert False, "Unknown target {!r}".format(args.target)
+
+    kwargs["date"] = time.strftime("%a %b %d %Y")
+    kwargs["packager"] = detect_packager()
 
     spec_file = "{}.spec".format(spec_basename)
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)
