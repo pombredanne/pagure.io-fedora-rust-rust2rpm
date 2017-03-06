@@ -7,8 +7,6 @@ import tempfile
 import subprocess
 
 import jinja2
-import jinja2.ext
-import jinja2.exceptions
 import requests
 import tqdm
 
