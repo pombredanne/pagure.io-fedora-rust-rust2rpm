@@ -1,7 +1,7 @@
 %__rustc %{_bindir}/rustc
 
 # Enable optimization, debuginfo, and link hardening.
-%__global_rustflags -Copt-level=3 -g -Clink-arg=-Wl,-z,relro,-z,now
+%__global_rustflags -Copt-level=3 -Cdebuginfo=2 -Clink-arg=-Wl,-z,relro,-z,now
 
 %__global_rustflags_toml [%{lua:
     for arg in string.gmatch(rpm.expand("%{__global_rustflags}"), "%S+") do
