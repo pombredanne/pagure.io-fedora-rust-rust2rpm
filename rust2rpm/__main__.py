@@ -46,8 +46,7 @@ Patch0:         {{ patch_file }}
 
 ExclusiveArch:  %{rust_arches}
 
-BuildRequires:  rust
-BuildRequires:  cargo
+BuildRequires:  rust-packaging
 {% if include_build_requires %}
 {% if md.requires|length > 0 %}
 # [dependencies]
