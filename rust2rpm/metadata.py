@@ -39,7 +39,8 @@ class Dependency(object):
                     else:
                         # Wildcard in string
                         assert False, spec.spec
-                return "{} {} {}".format(basestr, spec.kind, spec.spec)
+                version = str(spec.spec).replace('-', '~')
+                return "{} {} {}".format(basestr, spec.kind, version)
             else:
                 return basestr
 
@@ -93,7 +94,15 @@ class Dependency(object):
                 continue
             coerced = semver.Version.coerce(str(ver))
             if req.kind in (req.KIND_CARET, req.KIND_TILDE):
-                if req.kind == req.KIND_CARET:
+                if ver.prerelease:
+                    # pre-release versions only match the same x.y.z
+                    if ver.patch is not None:
+                        upper = ver.next_patch()
+                    elif ver.minor is not None:
+                        upper = ver.next_minor()
+                    else:
+                        upper = ver.next_major()
+                elif req.kind == req.KIND_CARET:
                     if ver.major == 0:
                         if ver.minor is not None:
                             if ver.patch is None or ver.minor != 0:

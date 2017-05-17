@@ -265,6 +265,18 @@ def cargo_toml(request):
      ["crate(hello) = 0.0.0"],
      ["(crate(libc) >= 1.2.0 with crate(libc) < 1.5.0)"]),
 
+    # Pre-release requirements
+    ("""
+     [package]
+     name = "hello"
+     version = "0.0.0-alpha"
+
+     [dependencies]
+     foo-bar = "1.2.3-beta"
+     """,
+     ["crate(hello) = 0.0.0~alpha"],
+     ["(crate(foo-bar) >= 1.2.3~beta with crate(foo-bar) < 1.2.3)"]),
+
 ])
 def test_depgen(toml, provides, requires, cargo_toml):
     md = rust2rpm.Metadata.from_file(cargo_toml(toml))
