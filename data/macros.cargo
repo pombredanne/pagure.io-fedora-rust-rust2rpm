@@ -2,7 +2,7 @@
 %__cargo_common_opts --release %{?_smp_mflags}
 %__cargo_inspector %{_bindir}/cargo-inspector
 
-%cargo_registry %{_usrsrc}/rust
+%cargo_registry %{_datadir}/cargo/registry
 
 %__cargo_is_lib() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F "$(printf 'lib\\\nproc-macro')"
 %__cargo_is_bin() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F bin
