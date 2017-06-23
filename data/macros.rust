@@ -1,4 +1,5 @@
 %__rustc %{_bindir}/rustc
+%__rustdoc %{_bindir}/rustdoc
 
 # Enable optimization, debuginfo, and link hardening.
 %__global_rustflags -Copt-level=3 -Cdebuginfo=2 -Clink-arg=-Wl,-z,relro,-z,now
