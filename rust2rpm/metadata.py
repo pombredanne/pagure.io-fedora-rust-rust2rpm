@@ -85,6 +85,8 @@ class Dependency(object):
         if "*" in s and s != "*":
             # XXX: https://github.com/rbarrois/python-semanticversion/issues/51
             s = "~{}".format(s.replace(".*", "", 1))
+            if ".*" in s:
+                s = s.replace(".*", "")
         spec = semver.Spec(s.replace(" ", ""))
         parsed = []
         for req in spec.specs:

@@ -210,6 +210,16 @@ def cargo_toml(request):
      """,
      ["crate(hello) = 0.0.0"],
      ["(crate(libc) >= 1.2.0 with crate(libc) < 1.3.0)"]),
+    ("""
+     [package]
+     name = "hello"
+     version = "0.0.0"
+
+     [dependencies]
+     libc = "1.*.*"
+     """,
+     ["crate(hello) = 0.0.0"],
+     ["(crate(libc) >= 1.0.0 with crate(libc) < 2.0.0)"]),
 
     # Inequality requirements
     ("""
