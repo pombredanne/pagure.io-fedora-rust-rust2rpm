@@ -38,6 +38,9 @@ def main():
             print_deps(list(itertools.chain(md.requires, md.build_requires)))
         if args.test_requires:
             print_deps(md.test_requires)
+        if args.requires:
+            # Someone should own /usr/share/cargo/registry
+            print("cargo")
 
 if __name__ == "__main__":
     main()

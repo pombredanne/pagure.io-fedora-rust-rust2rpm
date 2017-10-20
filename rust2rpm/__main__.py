@@ -91,6 +91,7 @@ Provides:       {{ prv }}
 {% endfor %}
 {% endif %}
 {% if include_requires %}
+Requires:       cargo
 {% if md.requires|length > 0 %}
 # [dependencies]
 {% for req in md.requires|sort(attribute="name") %}
