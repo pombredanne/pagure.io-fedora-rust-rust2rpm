@@ -41,6 +41,8 @@ def main():
         if args.requires:
             # Someone should own /usr/share/cargo/registry
             print("cargo")
+        if args.build_requires:
+            print("rust-packaging")
 
 if __name__ == "__main__":
     main()
