@@ -45,9 +45,9 @@ if %__cargo_is_lib; then                                                  \
   CRATE_VERSION=$(%__cargo_inspector --version Cargo.toml)                \
   REG_DIR=%{buildroot}%{cargo_registry}/$CRATE_NAME-$CRATE_VERSION        \
   %{__mkdir} -p $REG_DIR                                                  \
-  %__cargo package -l | xargs cp --parents -p -t $REG_DIR                 \
+  %__cargo package -l | xargs %{__cp} --parents -a -t $REG_DIR            \
 %if ! %{with check}                                                       \
-  %{__install} -p Cargo.toml.orig $REG_DIR/Cargo.toml                     \
+  %{__cp} -a Cargo.toml.orig $REG_DIR/Cargo.toml                          \
 %endif                                                                    \
   echo '{"files":{},"package":""}' > $REG_DIR/.cargo-checksum.json        \
 fi \
