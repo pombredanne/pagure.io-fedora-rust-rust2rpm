@@ -210,7 +210,8 @@ def main():
         url = requests.compat.urljoin(API_URL, "crates/{}/versions".format(args.crate))
         req = requests.get(url)
         req.raise_for_status()
-        args.version = req.json()["versions"][0]["num"]
+        versions = req.json()["versions"]
+        args.version = next(version["num"] for version in versions if not version["yanked"])
 
     if not os.path.isdir(CACHEDIR):
         os.mkdir(CACHEDIR)
