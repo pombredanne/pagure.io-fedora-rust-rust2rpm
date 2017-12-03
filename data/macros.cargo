@@ -36,7 +36,7 @@ EOF\
 
 %cargo_build %__cargo build %{__cargo_common_opts}
 
-%cargo_test %__cargo test %{__cargo_common_opts}
+%cargo_test %__cargo test %{__cargo_common_opts} --no-fail-fast
 
 %cargo_install (\
 set -eu                                                                   \
