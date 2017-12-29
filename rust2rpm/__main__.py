@@ -23,6 +23,30 @@ JINJA_ENV = jinja2.Environment(loader=jinja2.ChoiceLoader([
                                jinja2.PackageLoader('rust2rpm', 'templates'), ]),
                                trim_blocks=True, lstrip_blocks=True)
 
+def detect_distro():
+    with open("/etc/os-release") as os_release_file:
+        os_release_dict = {}
+        for line in os_release_file:
+            key, value = line.rstrip().split('=')
+            os_release_dict[key] = value.strip('"')
+    return os_release_dict
+
+def get_default_target():
+    distro_release = detect_distro()
+    distro_family = distro_release.get("ID_LIKE")
+    distro_id = distro_release.get("ID")
+    if distro_family is None:
+        distro_family = ""
+    # Order matters here!
+    if distro_id == "mageia" or ("mageia" in distro_family):
+        return "mageia"
+    elif distro_id == "fedora" or ("fedora" in distro_family):
+        return "fedora"
+    elif "suse" in distro_family:
+        return "opensuse"
+    else:
+        return "plain"
+
 def detect_editor():
     terminal = os.getenv("TERM")
     terminal_is_dumb = terminal is None or terminal == "dumb"
@@ -60,7 +84,7 @@ def main():
     parser.add_argument("-", "--stdout", action="store_true",
                         help="Print spec and patches into stdout")
     parser.add_argument("-t", "--target", action="store",
-                        choices=("plain", "fedora", "mageia", "opensuse"), default="fedora",
+                        choices=("plain", "fedora", "mageia", "opensuse"), default=get_default_target(),
                         help="Distribution target")
     parser.add_argument("-p", "--patch", action="store_true",
                         help="Do initial patching of Cargo.toml")
