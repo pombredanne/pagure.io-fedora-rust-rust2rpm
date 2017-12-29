@@ -8,6 +8,12 @@ ARGS = dict(
     keywords="rust cargo rpm",
 
     packages=["rust2rpm"],
+    package_data={
+        "rust2rpm": [
+            "templates/*.spec",
+            "templates/*.spec.inc",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "rust2rpm = rust2rpm.__main__:main",

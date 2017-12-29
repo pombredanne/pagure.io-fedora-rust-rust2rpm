@@ -1,0 +1,1 @@
+fedora-changelog.spec.inc
