@@ -261,7 +261,7 @@ def main():
 
     kwargs = {}
     bins = [tgt for tgt in metadata.targets if tgt.kind == "bin"]
-    libs = [tgt for tgt in metadata.targets if tgt.kind in ("lib", "proc-macro")]
+    libs = [tgt for tgt in metadata.targets if tgt.kind in ("lib", "rlib", "proc-macro")]
     is_bin = len(bins) > 0
     is_lib = len(libs) > 0
     if is_bin:

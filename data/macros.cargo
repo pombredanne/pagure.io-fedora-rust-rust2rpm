@@ -4,7 +4,7 @@
 
 %cargo_registry %{_datadir}/cargo/registry
 
-%__cargo_is_lib() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F -x "$(printf 'lib\\\nproc-macro')"
+%__cargo_is_lib() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F -x "$(printf 'lib\\\nrlib\\\nproc-macro')"
 %__cargo_is_bin() %__cargo_inspector --target-kinds Cargo.toml | grep -q -F -x bin
 
 %cargo_prep (\
