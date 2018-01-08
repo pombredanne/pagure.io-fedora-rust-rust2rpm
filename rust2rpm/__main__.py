@@ -1,7 +1,10 @@
 import argparse
+import configparser
 from datetime import datetime, timezone
 import difflib
+import itertools
 import os
+import shlex
 import shutil
 import tarfile
 import tempfile
@@ -23,26 +26,25 @@ JINJA_ENV = jinja2.Environment(loader=jinja2.ChoiceLoader([
                                jinja2.PackageLoader('rust2rpm', 'templates'), ]),
                                trim_blocks=True, lstrip_blocks=True)
 
-def detect_distro():
-    with open("/etc/os-release") as os_release_file:
-        os_release_dict = {}
-        for line in os_release_file:
-            key, value = line.rstrip().split('=')
-            os_release_dict[key] = value.strip('"')
-    return os_release_dict
-
 def get_default_target():
-    distro_release = detect_distro()
-    distro_family = distro_release.get("ID_LIKE")
-    distro_id = distro_release.get("ID")
-    if distro_family is None:
-        distro_family = ""
+    # TODO: add fallback for /usr/lib/os-release
+    with open("/etc/os-release") as os_release_file:
+        conf = configparser.ConfigParser()
+        conf.read_file(itertools.chain(["[os-release]"], os_release_file))
+        os_release = conf["os-release"]
+    os_id = os_release.get("ID")
+    os_like = os_release.get("ID_LIKE")
+    if os_like is not None:
+        os_like = shlex.split(os_like)
+    else:
+        os_like = []
+
     # Order matters here!
-    if distro_id == "mageia" or ("mageia" in distro_family):
+    if os_id == "mageia" or ("mageia" in os_like):
         return "mageia"
-    elif distro_id == "fedora" or ("fedora" in distro_family):
+    elif os_id == "fedora" or ("fedora" in os_like):
         return "fedora"
-    elif "suse" in distro_family:
+    elif "suse" in os_like:
         return "opensuse"
     else:
         return "plain"
