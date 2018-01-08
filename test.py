@@ -75,6 +75,30 @@ def cargo_toml(request):
       "crate(hello/color) = 1.2.3"],
      []),
 
+    # Provides for optional dependencies
+    ("""
+     [package]
+     name = "hello"
+     version = "1.2.3"
+
+     [dependencies]
+     non_optional = "1"
+     serde = { version = "1", optional = true }
+     rand = { version = "0.4", optional = true }
+
+     [features]
+     std = []
+     v1 = ["rand"]
+     """,
+     ["crate(hello) = 1.2.3",
+      "crate(hello/rand) = 1.2.3",
+      "crate(hello/serde) = 1.2.3",
+      "crate(hello/std) = 1.2.3",
+      "crate(hello/v1) = 1.2.3"],
+     ["(crate(non_optional) >= 1.0.0 with crate(non_optional) < 2.0.0)",
+      "(crate(rand) >= 0.4.0 with crate(rand) < 0.5.0)",
+      "(crate(serde) >= 1.0.0 with crate(serde) < 2.0.0)"]),
+
     # Caret requirements
     ("""
      [package]

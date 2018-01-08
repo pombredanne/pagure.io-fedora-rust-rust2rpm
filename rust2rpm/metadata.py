@@ -1,5 +1,6 @@
 __all__ = ["Dependency", "Metadata"]
 
+import itertools
 import json
 import subprocess
 import sys
@@ -162,7 +163,11 @@ class Metadata(object):
         self.targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
 
         # Provides
-        provides = Dependency(self.name, version, features=md["features"], provides=True)
+        # All optional depdencies are also features
+        # https://github.com/rust-lang/cargo/issues/4911
+        features = itertools.chain((x["name"] for x in md["dependencies"] if x["optional"]),
+                                   md["features"])
+        provides = Dependency(self.name, version, features=features, provides=True)
         self.provides = str(provides).split(" and ")
 
         # Dependencies
