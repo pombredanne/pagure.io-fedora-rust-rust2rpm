@@ -27,7 +27,7 @@ directory = "%{cargo_registry}"\
 [source.crates-io]\
 registry = "https://crates.io"\
 replace-with = "local-registry"\
-EOF \
+EOF\
 %{__rm} -f Cargo.lock \
 %if ! %{with check} \
 # https://github.com/rust-lang/cargo/issues/3732 \
