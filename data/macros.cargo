@@ -1,5 +1,5 @@
 %__cargo %{_bindir}/cargo
-%__cargo_common_opts --release %{?_smp_mflags}
+%__cargo_common_opts %{?_smp_mflags}
 %__cargo_inspector %{_bindir}/cargo-inspector
 
 %cargo_registry %{_datadir}/cargo/registry
@@ -35,9 +35,9 @@ EOF\
 %endif \
 )
 
-%cargo_build %__cargo build %{__cargo_common_opts}
+%cargo_build %__cargo build --release %{__cargo_common_opts}
 
-%cargo_test %__cargo test %{__cargo_common_opts} --no-fail-fast
+%cargo_test %__cargo test --release %{__cargo_common_opts} --no-fail-fast
 
 %cargo_install (\
 set -eu                                                                   \
@@ -53,7 +53,7 @@ if %__cargo_is_lib; then                                                  \
   echo '{"files":{},"package":""}' > $REG_DIR/.cargo-checksum.json        \
 fi \
 if %__cargo_is_bin; then                                                  \
-  %__cargo install %{?_smp_mflags} --path . --root %{buildroot}%{_prefix} \
+  %__cargo install %{__cargo_common_opts} --path . --root %{buildroot}%{_prefix} \
   %{__rm} %{buildroot}%{_prefix}/.crates.toml                             \
 fi \
 )
