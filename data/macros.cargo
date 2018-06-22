@@ -35,30 +35,29 @@ EOF\
 %endif \
 )
 
-%__cargo_parse_opts(t:naf:) %{shrink:\
+%__cargo_parse_opts(naf:) %{shrink:\
 %{-f:%{-a:%{error:Can't specify both -f(%{-f*}) and -a}}} \
-  %{-t:--target-dir %{-t*}}                               \
   %{-n:--no-default-features}                             \
   %{-a:--all-features}                                    \
   %{-f:--features %{-f*}}                                 \
   %{nil}
 }
 
-%cargo_build(t:naf:) %{shrink:\
-%{__cargo} build                                                  \
-  %{__cargo_common_opts}                                          \
-  --release                                                       \
-  %{__cargo_parse_opts %{-t:-t%{-t*}} %{-n} %{-a} %{-f:-f%{-f*}}} \
-  %*                                                              \
+%cargo_build(naf:) %{shrink:\
+%{__cargo} build                                   \
+  %{__cargo_common_opts}                           \
+  --release                                        \
+  %{__cargo_parse_opts %{-n} %{-a} %{-f:-f%{-f*}}} \
+  %*                                               \
 }
 
-%cargo_test(t:naf:) %{shrink:\
-%{__cargo} test                                                   \
-  %{__cargo_common_opts}                                          \
-  --release                                                       \
-  --no-fail-fast                                                  \
-  %{__cargo_parse_opts %{-t:-t%{-t*}} %{-n} %{-a} %{-f:-f%{-f*}}} \
-  %*                                                              \
+%cargo_test(naf:) %{shrink:\
+%{__cargo} test                                    \
+  %{__cargo_common_opts}                           \
+  --release                                        \
+  --no-fail-fast                                   \
+  %{__cargo_parse_opts %{-n} %{-a} %{-f:-f%{-f*}}} \
+  %*                                               \
 }
 
 %cargo_install(t:naf:) (\
@@ -75,7 +74,7 @@ if %__cargo_is_lib; then                                            \
   echo '{"files":{},"package":""}' > $REG_DIR/.cargo-checksum.json  \
 fi \
 if %__cargo_is_bin; then                                            \
-  %{shrink:%{-t:CARGO_TARGET_DIR=%{-t*}} %{__cargo} install         \
+  %{shrink:%{__cargo} install                                       \
     %{__cargo_common_opts}                                          \
     --path .                                                        \
     --root %{buildroot}%{_prefix}                                   \
