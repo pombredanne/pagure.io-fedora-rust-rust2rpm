@@ -1,5 +1,6 @@
 import argparse
 import configparser
+import contextlib
 from datetime import datetime, timezone
 import difflib
 import itertools
@@ -81,6 +82,16 @@ def file_mtime(path):
     t = datetime.fromtimestamp(os.stat(path).st_mtime, timezone.utc)
     return t.astimezone().isoformat()
 
+def local_toml(toml, version):
+    if os.path.isdir(toml):
+        toml = os.path.join(toml, 'Cargo.toml')
+
+    return toml, None, version
+
+def local_crate(crate, version):
+    cratename, version = os.path.basename(crate)[:-6].rsplit('-', 1)
+    return crate, cratename, version
+
 def download(crate, version):
     if version is None:
         # Now we need to get latest version
@@ -105,36 +116,8 @@ def download(crate, version):
                 f.write(chunk)
     return cratef, crate, version
 
-def local(crate, version):
-    if version is not None:
-        raise Exception("Don't specify version when using local crates!")
-    assert os.path.isfile(crate)
-    assert crate.endswith('.crate')
-    cratename,version = os.path.basename(crate)[:-6].rsplit('-', 1)
-    cratef = crate
-    return cratef, cratename, version
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-", "--stdout", action="store_true",
-                        help="Print spec and patches into stdout")
-    parser.add_argument("-t", "--target", action="store",
-                        choices=("plain", "fedora", "mageia", "opensuse"), default=get_default_target(),
-                        help="Distribution target")
-    parser.add_argument("-p", "--patch", action="store_true",
-                        help="Do initial patching of Cargo.toml")
-    parser.add_argument("crate", help="crates.io name")
-    parser.add_argument("version", nargs="?", help="crates.io version")
-    args = parser.parse_args()
-
-    if args.patch:
-        editor = detect_editor()
-
-    if args.crate.endswith('.crate') and os.path.isfile(args.crate):
-        cratef,crate,version = local(args.crate, args.version)
-    else:
-        cratef,crate,version = download(args.crate, args.version)
-
+@contextlib.contextmanager
+def toml_from_crate(cratef, crate, version):
     with tempfile.TemporaryDirectory() as tmpdir:
         target_dir = "{}/".format(tmpdir)
         with tarfile.open(cratef, "r") as archive:
@@ -144,26 +127,70 @@ def main():
             archive.extractall(target_dir)
         toml_relpath = "{}-{}/Cargo.toml".format(crate, version)
         toml = "{}/{}".format(tmpdir, toml_relpath)
-        assert os.path.isfile(toml)
+        if not os.path.isfile(toml):
+            raise IOError('crate does not contain Cargo.toml file')
+        yield toml
 
-        if args.patch:
-            mtime_before = file_mtime(toml)
-            with open(toml, "r") as fobj:
-                toml_before = fobj.readlines()
-            subprocess.check_call([editor, toml])
-            mtime_after = file_mtime(toml)
-            with open(toml, "r") as fobj:
-                toml_after = fobj.readlines()
-            diff = list(difflib.unified_diff(toml_before, toml_after,
-                                             fromfile=toml_relpath, tofile=toml_relpath,
-                                             fromfiledate=mtime_before, tofiledate=mtime_after))
+def make_patch(toml, enabled=True):
+    if not enabled:
+        return []
 
+    editor = detect_editor()
+
+    mtime_before = file_mtime(toml)
+    toml_before = open(toml).readlines()
+    subprocess.check_call([editor, toml])
+    mtime_after = file_mtime(toml)
+    toml_after = open(toml).readlines()
+    toml_relpath = '/'.join(toml.split('/')[-2:])
+    diff = list(difflib.unified_diff(toml_before, toml_after,
+                                     fromfile=toml_relpath, tofile=toml_relpath,
+                                     fromfiledate=mtime_before, tofiledate=mtime_after))
+    return diff
+
+def _is_path(path):
+    return '/' in path or path in {'.', '..'}
+
+def make_diff_metadata(crate, version, patch=False):
+    if _is_path(crate):
+        # Only things that look like a paths are considered local arguments
+        if crate.endswith('.crate'):
+            cratef, crate, version = local_crate(crate, version)
+        else:
+            toml, crate, version = local_toml(crate, version)
+            diff = make_patch(toml, enabled=patch)
+            metadata = Metadata.from_file(toml)
+            return metadata.name, diff, metadata
+    else:
+        cratef, crate, version = download(crate, version)
+
+    with toml_from_crate(cratef, crate, version) as toml:
+        diff = make_patch(toml, enabled=patch)
         metadata = Metadata.from_file(toml)
+    return crate, diff, metadata
+
+def main():
+    parser = argparse.ArgumentParser('rust2rpm',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-", "--stdout", action="store_true",
+                        help="Print spec and patches into stdout")
+    parser.add_argument("-t", "--target", action="store",
+                        choices=("plain", "fedora", "mageia", "opensuse"), default=get_default_target(),
+                        help="Distribution target")
+    parser.add_argument("-p", "--patch", action="store_true",
+                        help="Do initial patching of Cargo.toml")
+    parser.add_argument("crate", help="crates.io name\n"
+                                      "path/to/local.crate\n"
+                                      "path/to/project/")
+    parser.add_argument("version", nargs="?", help="crates.io version")
+    args = parser.parse_args()
+
+    crate, diff, metadata = make_diff_metadata(args.crate, args.version, patch=args.patch)
 
     template = JINJA_ENV.get_template("main.spec")
 
     if args.patch and len(diff) > 0:
-        patch_file = "{}-{}-fix-metadata.diff".format(crate, version)
+        patch_file = "{}-fix-metadata.diff".format(crate)
     else:
         patch_file = None
 
