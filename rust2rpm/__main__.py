@@ -131,7 +131,7 @@ def toml_from_crate(cratef, crate, version):
             raise IOError('crate does not contain Cargo.toml file')
         yield toml
 
-def make_patch(toml, enabled=True):
+def make_patch(toml, enabled=True, tmpfile=False):
     if not enabled:
         return []
 
@@ -139,9 +139,21 @@ def make_patch(toml, enabled=True):
 
     mtime_before = file_mtime(toml)
     toml_before = open(toml).readlines()
-    subprocess.check_call([editor, toml])
+
+    # When we are editing a git checkout, we should not modify the real file.
+    # When we are editing an unpacked crate, we are free to edit anything.
+    # Let's keep the file name as close as possible to make editing easier.
+    if tmpfile:
+        tmpfile = tempfile.NamedTemporaryFile('w+t', dir=os.path.dirname(toml),
+                                              prefix='Cargo.', suffix='.toml')
+        tmpfile.writelines(toml_before)
+        tmpfile.flush()
+        fname = tmpfile.name
+    else:
+        fname = toml
+    subprocess.check_call([editor, fname])
     mtime_after = file_mtime(toml)
-    toml_after = open(toml).readlines()
+    toml_after = open(fname).readlines()
     toml_relpath = '/'.join(toml.split('/')[-2:])
     diff = list(difflib.unified_diff(toml_before, toml_after,
                                      fromfile=toml_relpath, tofile=toml_relpath,
@@ -158,7 +170,7 @@ def make_diff_metadata(crate, version, patch=False):
             cratef, crate, version = local_crate(crate, version)
         else:
             toml, crate, version = local_toml(crate, version)
-            diff = make_patch(toml, enabled=patch)
+            diff = make_patch(toml, enabled=patch, tmpfile=True)
             metadata = Metadata.from_file(toml)
             return metadata.name, diff, metadata
     else:
