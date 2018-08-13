@@ -28,6 +28,9 @@ ARGS = dict(
         "jinja2",
         "requests",
         "tqdm",
+
+        # Rust cfg language parser
+        "rustcfg",
     ],
 
     author="Igor Gnatenko",

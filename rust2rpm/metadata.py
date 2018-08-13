@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import semantic_version as semver
+import rustcfg
 
 class Target(object):
     def __init__(self, kind, name):
@@ -163,23 +164,37 @@ class Metadata(object):
         self.targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
 
         # Provides
-        # All optional depdencies are also features
+        # All optional dependencies are also features
         # https://github.com/rust-lang/cargo/issues/4911
         features = itertools.chain((x["name"] for x in md["dependencies"] if x["optional"]),
                                    md["features"])
         provides = Dependency(self.name, version, features=features, provides=True)
         self.provides = str(provides).split(" and ")
 
+        ev = rustcfg.Evaluator.platform()
+
         # Dependencies
         for dep in md["dependencies"]:
-            if dep["kind"] is None:
+            kind = dep["kind"]
+            if kind is None:
                 requires = self.requires
-            elif dep["kind"] == "build":
+            elif kind == "build":
                 requires = self.build_requires
-            elif dep["kind"] == "dev":
+            elif kind == "dev":
                 requires = self.test_requires
             else:
-                raise ValueError("Unknown kind: {!r}, please report bug.".format(dep["kind"]))
+                raise ValueError("Unknown kind: {!r}, please report bug.".format(kind))
+
+            target = dep["target"]
+            if target is None:
+                pass
+            else:
+                cond = ev.parse_and_eval(target)
+                if not cond:
+                    print(f'Dependency {dep["name"]} for target {target!r} is not needed, ignoring.',
+                          file=sys.stderr)
+                    continue
+
             requires.append(Dependency(dep["name"], dep["req"], features=dep["features"]))
 
         return self
