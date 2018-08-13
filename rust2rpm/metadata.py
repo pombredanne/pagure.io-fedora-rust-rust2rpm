@@ -15,6 +15,24 @@ class Target(object):
     def __repr__(self):
         return "<Target {self.kind}|{self.name}>".format(self=self)
 
+
+def _req_to_str(name, spec=None, feature=None):
+    f_part = "/{}".format(feature) if feature is not None else ""
+    basestr = "crate({}{})".format(name, f_part)
+    if spec is None:
+        return basestr
+    if spec.kind == spec.KIND_EQUAL:
+        spec.kind = spec.KIND_SHORTEQ
+    if spec.kind == spec.KIND_ANY:
+        if spec.spec == "":
+            # Just wildcard
+            return basestr
+        else:
+            # Wildcard in string
+            assert False, spec.spec
+    version = str(spec.spec).replace('-', '~')
+    return "{} {} {}".format(basestr, spec.kind, version)
+
 class Dependency(object):
     def __init__(self, name, req, features=(), provides=False):
         self.name = name
@@ -27,33 +45,15 @@ class Dependency(object):
                 raise Exception("Provides can't be applied to ranged version, {!r}".format(self.spec))
 
     def __repr__(self):
-        def req_to_str(name, spec=None, feature=None):
-            f_part = "/{}".format(feature) if feature is not None else ""
-            basestr = "crate({}{})".format(name, f_part)
-            if spec is not None:
-                if spec.kind == spec.KIND_EQUAL:
-                    spec.kind = spec.KIND_SHORTEQ
-                if spec.kind == spec.KIND_ANY:
-                    if spec.spec == "":
-                        # Just wildcard
-                        return basestr
-                    else:
-                        # Wildcard in string
-                        assert False, spec.spec
-                version = str(spec.spec).replace('-', '~')
-                return "{} {} {}".format(basestr, spec.kind, version)
-            else:
-                return basestr
-
         if self.provides:
             spec = self.spec.specs[0]
-            provs = [req_to_str(self.name, spec)]
+            provs = [_req_to_str(self.name, spec)]
             for feature in self.features:
-                provs.append(req_to_str(self.name, spec, feature))
+                provs.append(_req_to_str(self.name, spec, feature))
             return " and ".join(provs)
 
-        reqs = [req_to_str(self.name, spec=req) for req in self.spec.specs]
-        features = [req_to_str(self.name, feature=feature) for feature in self.features]
+        reqs = [_req_to_str(self.name, spec=req) for req in self.spec.specs]
+        features = [_req_to_str(self.name, feature=feature) for feature in self.features]
 
         use_rich = False
         if len(reqs) > 1:
