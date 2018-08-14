@@ -16,7 +16,7 @@ import jinja2
 import requests
 import tqdm
 
-from . import Metadata
+from . import Metadata, licensing
 
 DEFAULT_EDITOR = "vi"
 XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
@@ -252,6 +252,11 @@ def main():
     else:
         kwargs["date"] = time.strftime("%a %b %d %Y")
     kwargs["packager"] = detect_packager()
+
+    if metadata.license is not None:
+        license, comments = licensing.translate_license(args.target, metadata.license)
+        kwargs["license"] = license
+        kwargs["license_comments"] = comments
 
     spec_file = "rust-{}.spec".format(crate)
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)

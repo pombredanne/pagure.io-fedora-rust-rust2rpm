@@ -1,3 +1,4 @@
 include LICENSE
 include data/*
+include rust2rpm/spdx_to_fedora.csv
 include rust2rpm/templates/*

@@ -10,6 +10,7 @@ ARGS = dict(
     packages=["rust2rpm"],
     package_data={
         "rust2rpm": [
+            "spdx_to_fedora.csv",
             "templates/*.spec",
             "templates/*.spec.inc",
         ],

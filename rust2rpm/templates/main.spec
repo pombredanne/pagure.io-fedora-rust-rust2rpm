@@ -20,7 +20,13 @@ Summary:        {{ description_lines|join(" ")|trim }}
 Group:          {{ rust_group }}
 {% endif %}
 
-License:        {{ md.license|default("# FIXME") }}
+{% if md.license != license %}
+# Upstream license specification: {{ md.license|default("(missing)") }}
+{% endif %}
+License:        {{ license|default("# FIXME") }}
+{% if license_comments is not none %}
+{{ license_comments }}
+{% endif %}
 URL:            https://crates.io/crates/{{ md.name }}
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
 {% if patch_file is not none %}
