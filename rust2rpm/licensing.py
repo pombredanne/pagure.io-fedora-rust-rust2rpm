@@ -48,6 +48,6 @@ def translate_license_fedora(license):
 
 def translate_license(target, license):
     license = translate_slashes(license)
-    if target.startswith("fedora") or target.startswith("epel"):
+    if target in {"fedora", "epel", "mageia"}:
         return translate_license_fedora(license)
     return license, None
