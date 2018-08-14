@@ -23,8 +23,8 @@ XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 CACHEDIR = os.path.join(XDG_CACHE_HOME, "rust2rpm")
 API_URL = "https://crates.io/api/v1/"
 JINJA_ENV = jinja2.Environment(loader=jinja2.ChoiceLoader([
-                               jinja2.FileSystemLoader(['/']),
-                               jinja2.PackageLoader('rust2rpm', 'templates'), ]),
+                               jinja2.FileSystemLoader(["/"]),
+                               jinja2.PackageLoader("rust2rpm", "templates"), ]),
                                trim_blocks=True, lstrip_blocks=True)
 
 def get_default_target():
@@ -84,12 +84,12 @@ def file_mtime(path):
 
 def local_toml(toml, version):
     if os.path.isdir(toml):
-        toml = os.path.join(toml, 'Cargo.toml')
+        toml = os.path.join(toml, "Cargo.toml")
 
     return toml, None, version
 
 def local_crate(crate, version):
-    cratename, version = os.path.basename(crate)[:-6].rsplit('-', 1)
+    cratename, version = os.path.basename(crate)[:-6].rsplit("-", 1)
     return crate, cratename, version
 
 def download(crate, version):
@@ -128,7 +128,7 @@ def toml_from_crate(cratef, crate, version):
         toml_relpath = "{}-{}/Cargo.toml".format(crate, version)
         toml = "{}/{}".format(tmpdir, toml_relpath)
         if not os.path.isfile(toml):
-            raise IOError('crate does not contain Cargo.toml file')
+            raise IOError("crate does not contain Cargo.toml file")
         yield toml
 
 def make_patch(toml, enabled=True, tmpfile=False):
@@ -144,8 +144,8 @@ def make_patch(toml, enabled=True, tmpfile=False):
     # When we are editing an unpacked crate, we are free to edit anything.
     # Let's keep the file name as close as possible to make editing easier.
     if tmpfile:
-        tmpfile = tempfile.NamedTemporaryFile('w+t', dir=os.path.dirname(toml),
-                                              prefix='Cargo.', suffix='.toml')
+        tmpfile = tempfile.NamedTemporaryFile("w+t", dir=os.path.dirname(toml),
+                                              prefix="Cargo.", suffix=".toml")
         tmpfile.writelines(toml_before)
         tmpfile.flush()
         fname = tmpfile.name
@@ -154,19 +154,19 @@ def make_patch(toml, enabled=True, tmpfile=False):
     subprocess.check_call([editor, fname])
     mtime_after = file_mtime(toml)
     toml_after = open(fname).readlines()
-    toml_relpath = '/'.join(toml.split('/')[-2:])
+    toml_relpath = "/".join(toml.split("/")[-2:])
     diff = list(difflib.unified_diff(toml_before, toml_after,
                                      fromfile=toml_relpath, tofile=toml_relpath,
                                      fromfiledate=mtime_before, tofiledate=mtime_after))
     return diff
 
 def _is_path(path):
-    return '/' in path or path in {'.', '..'}
+    return "/" in path or path in {".", ".."}
 
 def make_diff_metadata(crate, version, patch=False):
     if _is_path(crate):
         # Only things that look like a paths are considered local arguments
-        if crate.endswith('.crate'):
+        if crate.endswith(".crate"):
             cratef, crate, version = local_crate(crate, version)
         else:
             toml, crate, version = local_toml(crate, version)
@@ -182,7 +182,7 @@ def make_diff_metadata(crate, version, patch=False):
     return crate, diff, metadata
 
 def main():
-    parser = argparse.ArgumentParser('rust2rpm',
+    parser = argparse.ArgumentParser("rust2rpm",
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-", "--stdout", action="store_true",
                         help="Print spec and patches into stdout")

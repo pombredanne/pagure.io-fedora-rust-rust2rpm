@@ -30,7 +30,7 @@ def _req_to_str(name, spec=None, feature=None):
         else:
             # Wildcard in string
             assert False, spec.spec
-    version = str(spec.spec).replace('-', '~')
+    version = str(spec.spec).replace("-", "~")
     return "{} {} {}".format(basestr, spec.kind, version)
 
 class Dependency(object):
