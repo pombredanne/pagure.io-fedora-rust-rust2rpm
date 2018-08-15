@@ -162,7 +162,7 @@ def make_patch(toml, enabled=True, tmpfile=False):
 def _is_path(path):
     return "/" in path or path in {".", ".."}
 
-def make_diff_metadata(crate, version, patch=False):
+def make_diff_metadata(crate, version, patch=False, store=False):
     if _is_path(crate):
         # Only things that look like a paths are considered local arguments
         if crate.endswith(".crate"):
@@ -178,6 +178,8 @@ def make_diff_metadata(crate, version, patch=False):
     with toml_from_crate(cratef, crate, version) as toml:
         diff = make_patch(toml, enabled=patch)
         metadata = Metadata.from_file(toml)
+    if store:
+        shutil.copy2(cratef, os.path.join(os.getcwd(), f"{crate}-{version}.crate"))
     return crate, diff, metadata
 
 def main():
@@ -190,13 +192,17 @@ def main():
                         help="Distribution target")
     parser.add_argument("-p", "--patch", action="store_true",
                         help="Do initial patching of Cargo.toml")
+    parser.add_argument("-s", "--store-crate", action="store_true",
+                        help="Store crate in current directory")
     parser.add_argument("crate", help="crates.io name\n"
                                       "path/to/local.crate\n"
                                       "path/to/project/")
     parser.add_argument("version", nargs="?", help="crates.io version")
     args = parser.parse_args()
 
-    crate, diff, metadata = make_diff_metadata(args.crate, args.version, patch=args.patch)
+    crate, diff, metadata = make_diff_metadata(args.crate, args.version,
+                                               patch=args.patch,
+                                               store=args.store_crate)
 
     template = JINJA_ENV.get_template("main.spec")
 
