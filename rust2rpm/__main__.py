@@ -101,8 +101,7 @@ def download(crate, version):
         versions = req.json()["versions"]
         version = next(version["num"] for version in versions if not version["yanked"])
 
-    if not os.path.isdir(CACHEDIR):
-        os.mkdir(CACHEDIR)
+    os.makedirs(CACHEDIR, exist_ok=True)
     cratef_base = "{}-{}.crate".format(crate, version)
     cratef = os.path.join(CACHEDIR, cratef_base)
     if not os.path.isfile(cratef):
