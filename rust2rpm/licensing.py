@@ -21,6 +21,10 @@ def spdx_to_fedora_map():
                 for line in reader
                 if line['SPDX License Identifier']}
 
+def dump_sdpx_to_fedora_map(file):
+    for k,v in spdx_to_fedora_map().items():
+        print(f"{k} → {v}", file=file)
+
 def translate_license_fedora(license):
     comments = ''
     final = []

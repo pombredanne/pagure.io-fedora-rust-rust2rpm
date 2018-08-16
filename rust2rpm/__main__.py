@@ -7,6 +7,7 @@ import itertools
 import os
 import shlex
 import shutil
+import sys
 import tarfile
 import tempfile
 import time
@@ -185,6 +186,8 @@ def make_diff_metadata(crate, version, patch=False, store=False):
 def main():
     parser = argparse.ArgumentParser("rust2rpm",
                                      formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--show-license-map", action="store_true",
+                        help="Print license mappings and exit")
     parser.add_argument("-", "--stdout", action="store_true",
                         help="Print spec and patches into stdout")
     parser.add_argument("-t", "--target", action="store",
@@ -196,9 +199,17 @@ def main():
                         help="Store crate in current directory")
     parser.add_argument("crate", help="crates.io name\n"
                                       "path/to/local.crate\n"
-                                      "path/to/project/")
+                                      "path/to/project/",
+                        nargs="?")
     parser.add_argument("version", nargs="?", help="crates.io version")
     args = parser.parse_args()
+
+    if args.show_license_map:
+        licensing.dump_sdpx_to_fedora_map(sys.stdout)
+        return
+
+    if args.crate is None:
+        parser.error('required crate/path argument missing')
 
     crate, diff, metadata = make_diff_metadata(args.crate, args.version,
                                                patch=args.patch,
