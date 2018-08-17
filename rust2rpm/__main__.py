@@ -178,6 +178,9 @@ def make_diff_metadata(crate, version, patch=False, store=False):
         if crate.endswith(".crate"):
             cratef, crate, version = local_crate(crate, version)
         else:
+            if store:
+                raise ValueError('--store-crate can only be used for a crate')
+
             toml, crate, version = local_toml(crate, version)
             diff = make_patch(toml, enabled=patch, tmpfile=True)
             metadata = Metadata.from_file(toml)
