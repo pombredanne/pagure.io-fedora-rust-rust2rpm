@@ -83,6 +83,14 @@ def file_mtime(path):
     t = datetime.fromtimestamp(os.stat(path).st_mtime, timezone.utc)
     return t.astimezone().isoformat()
 
+@contextlib.contextmanager
+def remove_on_error(path):
+    try:
+        yield
+    except: # this is supposed to include ^C
+        os.unlink(path)
+        raise
+
 def local_toml(toml, version):
     if os.path.isdir(toml):
         toml = os.path.join(toml, "Cargo.toml")
@@ -110,7 +118,8 @@ def download(crate, version):
         req = requests.get(url, stream=True)
         req.raise_for_status()
         total = int(req.headers["Content-Length"])
-        with open(cratef, "wb") as f:
+        with remove_on_error(cratef), \
+             open(cratef, "wb") as f:
             for chunk in tqdm.tqdm(req.iter_content(), "Downloading {}".format(cratef_base),
                                    total=total, unit="B", unit_scale=True):
                 f.write(chunk)
