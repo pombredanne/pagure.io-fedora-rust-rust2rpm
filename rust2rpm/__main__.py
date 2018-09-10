@@ -180,7 +180,7 @@ def make_diff_metadata(crate, version, patch=False, store=False):
         diff = make_patch(toml, enabled=patch)
         metadata = Metadata.from_file(toml)
     if store:
-        shutil.copy2(cratef, os.path.join(os.getcwd(), f"{crate}-{version}.crate"))
+        shutil.copy2(cratef, os.path.join(os.getcwd(), f"{metadata.name}-{version}.crate"))
     return crate, diff, metadata
 
 def main():
@@ -218,11 +218,12 @@ def main():
     template = JINJA_ENV.get_template("main.spec")
 
     if args.patch and len(diff) > 0:
-        patch_file = "{}-fix-metadata.diff".format(metadata.name)
+        patch_file = f"{metadata.name}-fix-metadata.diff"
     else:
         patch_file = None
 
     kwargs = {}
+    kwargs["crate"] = crate
     kwargs["target"] = args.target
     bins = [tgt for tgt in metadata.targets if tgt.kind == "bin"]
     libs = [tgt for tgt in metadata.targets if tgt.kind in ("lib", "rlib", "proc-macro")]
@@ -269,7 +270,7 @@ def main():
         kwargs["license"] = license
         kwargs["license_comments"] = comments
 
-    spec_file = "rust-{}.spec".format(metadata.name)
+    spec_file = f"rust-{metadata.name}.spec"
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)
     if args.stdout:
         print("# {}".format(spec_file))

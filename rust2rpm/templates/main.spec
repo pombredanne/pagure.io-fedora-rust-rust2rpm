@@ -6,6 +6,9 @@
 {% endif %}
 
 %global crate {{ md.name }}
+{% if md.name != crate %}
+%global real_crate {{ crate }}
+{% endif %}
 
 Name:           rust-%{crate}
 Version:        {{ md.version }}
@@ -27,8 +30,12 @@ License:        {{ license|default("# FIXME") }}
 {% if license_comments is not none %}
 {{ license_comments }}
 {% endif %}
-URL:            https://crates.io/crates/{{ md.name }}
+URL:            https://crates.io/crates/{{ crate }}
+{% if md.name != crate %}
+Source0:        https://crates.io/api/v1/crates/%{real_crate}/%{version}/download#/%{crate}-%{version}.crate
+{% else %}
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
+{% endif %}
 {% if patch_file is not none %}
 {% if target == "opensuse" %}
 # PATCH-FIX-OPENSUSE {{ patch_file }} -- Initial patched metadata
@@ -118,7 +125,11 @@ which use %{crate} from crates.io.
 
 {% endif %}
 %prep
+{% if md.name != crate %}
+%autosetup -n %{real_crate}-%{version} -p1
+{% else %}
 %autosetup -n %{crate}-%{version} -p1
+{% endif %}
 %cargo_prep
 
 %build
