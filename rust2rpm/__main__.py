@@ -218,7 +218,7 @@ def main():
     template = JINJA_ENV.get_template("main.spec")
 
     if args.patch and len(diff) > 0:
-        patch_file = "{}-fix-metadata.diff".format(crate)
+        patch_file = "{}-fix-metadata.diff".format(metadata.name)
     else:
         patch_file = None
 
@@ -269,7 +269,7 @@ def main():
         kwargs["license"] = license
         kwargs["license_comments"] = comments
 
-    spec_file = "rust-{}.spec".format(crate)
+    spec_file = "rust-{}.spec".format(metadata.name)
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)
     if args.stdout:
         print("# {}".format(spec_file))
