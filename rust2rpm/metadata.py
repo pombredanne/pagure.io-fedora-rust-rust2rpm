@@ -140,6 +140,7 @@ class Metadata(object):
         self.name = None
         self.license = None
         self.license_file = None
+        self.readme = None
         self.description = None
         self.version = None
         self._targets = []
@@ -156,6 +157,7 @@ class Metadata(object):
         self.name = md["name"]
         self.license = md["license"]
         self.license_file = md["license_file"]
+        self.readme = md["readme"]
         self.description = md.get("description")
         self.version = md["version"]
         version = "={}".format(self.version)

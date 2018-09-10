@@ -137,6 +137,9 @@ which use %{crate} from crates.io.
 {% if md.license_file is not none %}
 %license {{ md.license_file }}
 {% endif %}
+{% if md.readme is not none %}
+%doc {{ md.readme }}
+{% endif %}
 {% for bin in bins %}
 %{_bindir}/{{ bin.name }}
 {% endfor %}
@@ -146,6 +149,9 @@ which use %{crate} from crates.io.
 %files          devel
 {% if md.license_file is not none %}
 %license {{ md.license_file }}
+{% endif %}
+{% if md.readme is not none %}
+%doc {{ md.readme }}
 {% endif %}
 %{cargo_registry}/%{crate}-%{version}/
 
