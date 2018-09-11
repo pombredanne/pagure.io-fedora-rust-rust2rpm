@@ -203,8 +203,6 @@ class Metadata(object):
 
     @classmethod
     def from_file(cls, path):
-        do_decode = sys.version_info < (3, 6)
         metadata = subprocess.check_output(["cargo", "read-manifest",
-                                            "--manifest-path={}".format(path)],
-                                           universal_newlines=do_decode)
+                                            "--manifest-path={}".format(path)])
         return cls.from_json(json.loads(metadata))
