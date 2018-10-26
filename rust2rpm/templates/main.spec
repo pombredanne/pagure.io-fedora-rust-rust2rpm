@@ -48,82 +48,102 @@ Patch0:         {{ patch_file }}
 ExclusiveArch:  %{rust_arches}
 
 BuildRequires:  rust-packaging
-{% if include_build_requires %}
-{% if md.requires|length > 0 %}
-# [dependencies]
-{% for req in md.requires|sort(attribute="name") %}
+{# We will put all non-optional and optional dependencies until
+   https://github.com/rust-lang/cargo/issues/5133
+   is solved
+{% set buildrequires = normalize_deps(md.requires("default", resolve=True))|sort %}
+#}
+{% set buildrequires = normalize_deps(md.all_dependencies)|sort %}
+{% for req in buildrequires %}
 BuildRequires:  {{ req }}
 {% endfor %}
-{% endif %}
-{% if md.build_requires|length > 0 %}
-# [build-dependencies]
-{% for req in md.build_requires|sort(attribute="name") %}
-BuildRequires:  {{ req }}
-{% endfor %}
-{% endif %}
-{% if md.test_requires|length > 0 %}
+{% set testrequires = normalize_deps(md.dev_dependencies)|sort %}
+{% if testrequires|length > 0 %}
 %if %{with check}
-# [dev-dependencies]
-{% for req in md.test_requires|sort(attribute="name") %}
+  {% for req in testrequires %}
 BuildRequires:  {{ req }}
-{% endfor %}
+  {% endfor %}
 %endif
 {% endif %}
+
+%global _description \
+{% if md.description is none %}
+%{summary}.
+{% else %}
+{{ md.description|wordwrap(wrapstring="\\\n")|trim }}
 {% endif %}
 
-%description
-%{summary}.
+%description %{_description}
 
 {% if include_main %}
 %package     -n %{crate}
 Summary:        %{summary}
-{% if rust_group is defined %}
+  {% if rust_group is defined %}
 Group:          # FIXME
-{% endif %}
+  {% endif %}
 
 %description -n %{crate}
 %{summary}.
 
-{% endif %}
-{% if include_devel %}
-%package        devel
-Summary:        %{summary}
-{% if rust_group is defined %}
-Group:          {{ rust_group }}
-{% endif %}
-BuildArch:      noarch
-{% if include_provides %}
-{% for prv in md.provides %}
-Provides:       {{ prv }}
-{% endfor %}
-{% endif %}
-{% if include_requires %}
-Requires:       cargo
-{% if md.requires|length > 0 %}
-# [dependencies]
-{% for req in md.requires|sort(attribute="name") %}
-Requires:       {{ req }}
-{% endfor %}
-{% endif %}
-{% if md.build_requires|length > 0 %}
-# [build-dependencies]
-{% for req in md.build_requires|sort(attribute="name") %}
-Requires:       {{ req }}
-{% endfor %}
-{% endif %}
-{% endif %}
+%files       -n %{crate}
+  {% if md.license_file is not none %}
+%license {{ md.license_file }}
+  {% endif %}
+  {% if md.readme is not none %}
+%doc {{ md.readme }}
+  {% endif %}
+  {% for bin in bins %}
+%{_bindir}/{{ bin.name }}
+  {% endfor %}
 
-%description    devel
-{% if md.description is none %}
-%{summary}.
-{% else %}
-{{ md.description|wordwrap|trim }}
-{% endif %}
+{% endif -%}
+
+{% if include_devel %}
+  {% set features = md.dependencies.keys()|list %}
+  {% do features.remove(None) %}
+  {% do features.remove("default") %}
+  {% set features = features|sort %}
+  {% do features.insert(0, None) %}
+  {% do features.insert(1, "default") %}
+  {% for feature in features %}
+    {% set pkg = "-n %%{name}+%s-devel"|format(feature) if feature is not none else "   devel" %}
+%package     {{ pkg }}
+Summary:        %{summary}
+    {% if rust_group is defined %}
+Group:          {{ rust_group }}
+    {% endif %}
+BuildArch:      noarch
+    {% if include_provides %}
+Provides:       {{ md.provides(feature) }}
+    {% endif %}
+    {% if include_requires %}
+Requires:       cargo
+      {% for req in md.requires(feature)|map("string")|sort %}
+Requires:       {{ req }}
+      {% endfor %}
+    {% endif %}
+
+%description {{ pkg }} %{_description}
 
 This package contains library source intended for building other packages
-which use %{crate} from crates.io.
+which use {% if feature is not none %}"{{ feature }}" feature of {% endif %}"%{crate}" crate.
 
-{% endif %}
+%files       {{ pkg }}
+    {% if feature is none %}
+      {% if md.license_file is not none %}
+%license {{ md.license_file }}
+      {% endif %}
+      {% if md.readme is not none %}
+%doc {{ md.readme }}
+      {% endif %}
+%{cargo_registry}/%{crate}-%{version}/
+    {% else %}
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+    {% endif %}
+
+  {% endfor %}
+{% endif -%}
+
 %prep
 {% if md.name != crate %}
 %autosetup -n %{real_crate}-%{version} -p1
@@ -143,29 +163,5 @@ which use %{crate} from crates.io.
 %cargo_test
 %endif
 
-{% if include_main %}
-%files       -n %{crate}
-{% if md.license_file is not none %}
-%license {{ md.license_file }}
-{% endif %}
-{% if md.readme is not none %}
-%doc {{ md.readme }}
-{% endif %}
-{% for bin in bins %}
-%{_bindir}/{{ bin.name }}
-{% endfor %}
-
-{% endif %}
-{% if include_devel %}
-%files          devel
-{% if md.license_file is not none %}
-%license {{ md.license_file }}
-{% endif %}
-{% if md.readme is not none %}
-%doc {{ md.readme }}
-{% endif %}
-%{cargo_registry}/%{crate}-%{version}/
-
-{% endif %}
 %changelog
 {% include target ~ "-changelog.spec.inc" %}

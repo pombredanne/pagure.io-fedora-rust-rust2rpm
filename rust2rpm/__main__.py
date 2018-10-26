@@ -18,15 +18,19 @@ import requests
 import tqdm
 
 from . import Metadata, licensing
+from .metadata import normalize_deps
 
 DEFAULT_EDITOR = "vi"
 XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 CACHEDIR = os.path.join(XDG_CACHE_HOME, "rust2rpm")
 API_URL = "https://crates.io/api/v1/"
 JINJA_ENV = jinja2.Environment(loader=jinja2.ChoiceLoader([
-                               jinja2.FileSystemLoader(["/"]),
-                               jinja2.PackageLoader("rust2rpm", "templates"), ]),
-                               trim_blocks=True, lstrip_blocks=True)
+                                   jinja2.FileSystemLoader(["/"]),
+                                   jinja2.PackageLoader("rust2rpm", "templates"),
+                               ]),
+                               extensions=["jinja2.ext.do"],
+                               trim_blocks=True,
+                               lstrip_blocks=True)
 
 def get_default_target():
     # TODO: add fallback for /usr/lib/os-release
@@ -227,6 +231,7 @@ def main():
                                                patch=args.patch,
                                                store=args.store_crate)
 
+    JINJA_ENV.globals["normalize_deps"] = normalize_deps
     template = JINJA_ENV.get_template("main.spec")
 
     if args.patch and len(diff) > 0:

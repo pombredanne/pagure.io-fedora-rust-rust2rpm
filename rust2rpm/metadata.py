@@ -1,208 +1,207 @@
 __all__ = ["Dependency", "Metadata"]
 
-import itertools
+import copy
 import json
 import subprocess
-import sys
 
 import semantic_version as semver
 import rustcfg
 
-class Target(object):
-    def __init__(self, kind, name):
+class Target:
+    def __init__(self, name, kind):
+        self.name = name
         self.kind = kind
-        self.name = name
 
     def __repr__(self):
-        return "<Target {self.kind}|{self.name}>".format(self=self)
+        return f"<Target {self.name} ({self.kind})>"
 
-
-def _req_to_str(name, spec=None, feature=None):
-    f_part = "/{}".format(feature) if feature is not None else ""
-    basestr = "crate({}{})".format(name, f_part)
-    if spec is None:
-        return basestr
-    if spec.kind == spec.KIND_EQUAL:
-        spec.kind = spec.KIND_SHORTEQ
-    if spec.kind == spec.KIND_ANY:
-        if spec.spec == "":
-            # Just wildcard
-            return basestr
-        else:
-            # Wildcard in string
-            assert False, spec.spec
-    version = str(spec.spec).replace("-", "~")
-    return "{} {} {}".format(basestr, spec.kind, version)
-
-class Dependency(object):
-    def __init__(self, name, req, features=(), provides=False):
+class Dependency:
+    def __init__(self, name, req=None, features=(), optional=False):
         self.name = name
-        self.spec = self._parse_req(req)
+        self.req = req
         self.features = features
-        self.provides = provides
-        if self.provides:
-            if len(self.spec.specs) > 1 or \
-               (len(self.spec.specs) == 1 and self.spec.specs[0].kind != self.spec.specs[0].KIND_EQUAL):
-                raise Exception("Provides can't be applied to ranged version, {!r}".format(self.spec))
+        self.optional = optional
 
-    def __repr__(self):
-        if self.provides:
-            spec = self.spec.specs[0]
-            provs = [_req_to_str(self.name, spec)]
-            for feature in self.features:
-                provs.append(_req_to_str(self.name, spec, feature))
-            return " and ".join(provs)
-
-        reqs = [_req_to_str(self.name, spec=req) for req in self.spec.specs]
-        features = [_req_to_str(self.name, feature=feature) for feature in self.features]
-
-        use_rich = False
-        if len(reqs) > 1:
-            reqstr = "({})".format(" with ".join(reqs))
-            use_rich = True
-        elif len(reqs) == 1:
-            reqstr = reqs[0]
-        else:
-            reqstr = ""
-        if len(features) > 0:
-            featurestr = " with ".join(features)
-            use_rich = True
-        else:
-            featurestr = ""
-
-        if use_rich:
-            if reqstr and featurestr:
-                return "({} with {})".format(reqstr, featurestr)
-            elif reqstr and not featurestr:
-                return reqstr
-            elif not reqstr and featurestr:
-                return "({})".format(featurestr)
-            else:
-                assert False
-        else:
-            return reqstr
+    @classmethod
+    def from_json(cls, metadata):
+        features = set(metadata['features'])
+        if metadata['uses_default_features']:
+            features.add('default')
+        kwargs = {'name': metadata['name'],
+                  'req': metadata['req'],
+                  'optional': metadata['optional'],
+                  'features': features}
+        return cls(**kwargs)
 
     @staticmethod
-    def _parse_req(s):
-        if "*" in s and s != "*":
-            # XXX: https://github.com/rbarrois/python-semanticversion/issues/51
-            s = "~{}".format(s.replace(".*", "", 1))
-            if ".*" in s:
-                s = s.replace(".*", "")
-        spec = semver.Spec(s.replace(" ", ""))
-        parsed = []
+    def _normalize_req(req):
+        if "*" in req and req != "*":
+            raise NotImplementedError(f"'*' is not supported: {req}")
+        spec = semver.Spec(req.replace(" ", ""))
+        reqs = []
         for req in spec.specs:
-            ver = req.spec
             if req.kind == req.KIND_ANY:
-                parsed.append("*")
+                # Any means any
                 continue
+            ver = req.spec
+            if ver.prerelease:
+                raise NotImplementedError(f"Pre-release requirement is not supported: {ver}")
+            if req.kind in (req.KIND_NEQ, req.KIND_EMPTY):
+                raise NotImplementedError(f"'!=' and empty kinds are not supported: {req}")
             coerced = semver.Version.coerce(str(ver))
-            if req.kind in (req.KIND_CARET, req.KIND_TILDE):
-                if ver.prerelease:
-                    # pre-release versions only match the same x.y.z
-                    if ver.patch is not None:
-                        upper = ver.next_patch()
-                    elif ver.minor is not None:
-                        upper = ver.next_minor()
-                    else:
-                        upper = ver.next_major()
-                elif req.kind == req.KIND_CARET:
-                    if ver.major == 0:
-                        if ver.minor is not None:
-                            if ver.patch is None or ver.minor != 0:
-                                upper = ver.next_minor()
-                            else:
-                                upper = ver.next_patch()
+            if req.kind == req.KIND_EQUAL:
+                req.kind = req.KIND_SHORTEQ
+            if req.kind in (req.KIND_CARET, req.KIND_COMPATIBLE):
+                if ver.major == 0:
+                    if ver.minor is not None:
+                        if ver.minor != 0 or ver.patch is None:
+                            upper = ver.next_minor()
                         else:
-                            upper = ver.next_major()
+                            upper = ver.next_patch()
                     else:
                         upper = ver.next_major()
-                elif req.kind == req.KIND_TILDE:
-                    if ver.minor is None:
-                        upper = ver.next_major()
-                    else:
-                        upper = ver.next_minor()
                 else:
-                    assert False
-                parsed.append(">={}".format(coerced))
-                parsed.append("<{}".format(upper))
-            elif req.kind == req.KIND_NEQ:
-                parsed.append(">{}".format(coerced))
-                parsed.append("<{}".format(coerced))
-            elif req.kind in (req.KIND_EQUAL, req.KIND_GT, req.KIND_GTE, req.KIND_LT, req.KIND_LTE):
-                parsed.append("{}{}".format(req.kind, coerced))
+                    upper = ver.next_major()
+                reqs.append((">=", coerced))
+                reqs.append(("<", upper))
+            elif req.kind == req.KIND_TILDE:
+                if ver.minor is None:
+                    upper = ver.next_major()
+                else:
+                    upper = ver.next_minor()
+                reqs.append((">=", coerced))
+                reqs.append(("<", upper))
+            elif req.kind in (req.KIND_SHORTEQ,
+                              req.KIND_GT,
+                              req.KIND_GTE,
+                              req.KIND_LT,
+                              req.KIND_LTE):
+                reqs.append((str(req.kind), coerced))
             else:
-                assert False, req.kind
-        return semver.Spec(",".join(parsed))
+                raise AssertionError(f"Found unhandled kind: {req.kind}")
+        return reqs
 
-class Metadata(object):
-    def __init__(self):
-        self.name = None
+    @staticmethod
+    def _apply_reqs(name, reqs, feature=None):
+        fstr = f"/{feature}" if feature is not None else ""
+        cap = f"crate({name}{fstr})"
+        if not reqs:
+            return cap
+        deps = " with ".join(f"{cap} {op} {version}" for op, version in reqs)
+        if len(reqs) > 1:
+            return f"({deps})"
+        else:
+            return deps
+
+    def normalize(self):
+        return [self._apply_reqs(self.name, self._normalize_req(self.req), feature)
+                for feature in self.features or (None,)]
+
+    def __repr__(self):
+        return f"<Dependency: {self.name} {self.req} ({', '.join(sorted(self.features))})>"
+
+    def __str__(self):
+        return "\n".join(self.normalize())
+
+class Metadata:
+    def __init__(self, name, version):
+        self.name = name
+        self.version = version
         self.license = None
         self.license_file = None
         self.readme = None
         self.description = None
-        self.version = None
-        self._targets = []
-        self.provides = []
-        self.requires = []
-        self.build_requires = []
-        self.test_requires = []
+        self.targets = set()
+        self.dependencies = {}
+        self.dev_dependencies = set()
 
     @classmethod
     def from_json(cls, metadata):
-        self = cls()
-
         md = metadata
-        self.name = md["name"]
+        self = cls(md["name"], md["version"])
+
         self.license = md["license"]
         self.license_file = md["license_file"]
         self.readme = md["readme"]
         self.description = md.get("description")
-        self.version = md["version"]
-        version = "={}".format(self.version)
 
-        # Targets
-        self.targets = [Target(tgt["kind"][0], tgt["name"]) for tgt in md["targets"]]
+        # dependencies + build-dependencies → runtime
+        deps_by_name = {dep["name"]: Dependency.from_json(dep)
+                        for dep in md["dependencies"]
+                        if dep["kind"] != "dev"}
 
-        # Provides
-        # All optional dependencies are also features
-        # https://github.com/rust-lang/cargo/issues/4911
-        features = itertools.chain((x["name"] for x in md["dependencies"] if x["optional"]),
-                                   md["features"])
-        provides = Dependency(self.name, version, features=features, provides=True)
-        self.provides = str(provides).split(" and ")
+        deps_by_feature = {}
+        for feature, f_deps in md["features"].items():
+            features = {None}
+            deps = set()
+            for dep in f_deps:
+                if dep in md["features"]:
+                    features.add(dep)
+                else:
+                    pkg, _, f = dep.partition("/")
+                    dep = copy.deepcopy(deps_by_name[pkg])
+                    if f:
+                        dep.features = {f}
+                    deps.add(dep)
+            deps_by_feature[feature] = (features, deps)
 
-        ev = rustcfg.Evaluator.platform()
-
-        # Dependencies
-        for dep in md["dependencies"]:
-            kind = dep["kind"]
-            if kind is None:
-                requires = self.requires
-            elif kind == "build":
-                requires = self.build_requires
-            elif kind == "dev":
-                requires = self.test_requires
+        mandatory_deps = set()
+        for dep in deps_by_name.values():
+            if dep.optional:
+                deps_by_feature[dep.name] = ({None}, {copy.deepcopy(dep)})
             else:
-                raise ValueError("Unknown kind: {!r}, please report bug.".format(kind))
+                mandatory_deps.add(copy.deepcopy(dep))
+        deps_by_feature[None] = (set(), mandatory_deps)
 
-            target = dep["target"]
-            if target is None:
-                pass
-            else:
-                cond = ev.parse_and_eval(target)
-                if not cond:
-                    print(f'Dependency {dep["name"]} for target {target!r} is not needed, ignoring.',
-                          file=sys.stderr)
-                    continue
+        if "default" not in deps_by_feature:
+            deps_by_feature["default"] = ({None}, set())
 
-            requires.append(Dependency(dep["name"], dep["req"], features=dep["features"]))
+        self.dependencies = deps_by_feature
+        self.dev_dependencies = {Dependency.from_json(dep)
+                                 for dep in md["dependencies"]
+                                 if dep["kind"] == "dev"}
+
+        self.targets = {Target(tgt["name"], tgt["kind"][0])
+                        for tgt in md["targets"]}
 
         return self
 
     @classmethod
     def from_file(cls, path):
         metadata = subprocess.check_output(["cargo", "read-manifest",
-                                            "--manifest-path={}".format(path)])
+                                            f"--manifest-path={path}"])
         return cls.from_json(json.loads(metadata))
+
+    @property
+    def all_dependencies(self):
+        return set().union(*(x[1] for x in self.dependencies.values()))
+
+    def provides(self, feature=None):
+        if feature not in self.dependencies:
+            raise KeyError(f"Feature {feature!r} doesn't exist")
+        return Dependency(self.name, f"={self.version}", features={feature})
+
+    @classmethod
+    def _resolve(cls, deps_by_feature, feature):
+        all_features = set()
+        all_deps = set()
+        ff, dd = copy.deepcopy(deps_by_feature[feature])
+        all_features |= ff
+        all_deps |= dd
+        for f in ff:
+            ff1, dd1 = cls._resolve(deps_by_feature, f)
+            all_features |= ff1
+            all_deps |= dd1
+        return all_features, all_deps
+
+    def requires(self, feature=None, resolve=False):
+        if resolve:
+            return self._resolve(self.dependencies, feature)[1]
+        else:
+            features, deps = self.dependencies[feature]
+            fdeps = set(Dependency(self.name, f"={self.version}", features={feature})
+                        for feature in features)
+            return fdeps | deps
+
+def normalize_deps(deps):
+    return set().union(*(d.normalize() for d in deps))

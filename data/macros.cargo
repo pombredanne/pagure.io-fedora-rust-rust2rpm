@@ -84,3 +84,13 @@ if %__cargo_is_bin; then                                            \
   %{__rm} %{buildroot}%{_prefix}/.crates.toml                       \
 fi \
 )
+
+%__cargo_feature_from_name(n:) %{lua:
+local name = rpm.expand("%{-n*}")
+local feature = string.match(name, "^.+%+(.+)-devel$")
+if feature == nil then
+  print()
+else
+  print(feature)
+end
+}
