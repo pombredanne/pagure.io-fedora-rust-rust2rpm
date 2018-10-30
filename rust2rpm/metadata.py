@@ -1,5 +1,6 @@
 __all__ = ["Dependency", "Metadata"]
 
+import collections
 import copy
 import json
 import subprocess
@@ -126,9 +127,11 @@ class Metadata:
         self.description = md.get("description")
 
         # dependencies + build-dependencies → runtime
-        deps_by_name = {dep["name"]: Dependency.from_json(dep)
-                        for dep in md["dependencies"]
-                        if dep["kind"] != "dev"}
+        deps_by_name = collections.defaultdict(list)
+        for dep in md["dependencies"]:
+            if dep["kind"] == "dev":
+                continue
+            deps_by_name[dep["name"]].append(Dependency.from_json(dep))
 
         deps_by_feature = {}
         for feature, f_deps in md["features"].items():
@@ -139,18 +142,23 @@ class Metadata:
                     features.add(dep)
                 else:
                     pkg, _, f = dep.partition("/")
-                    dep = copy.deepcopy(deps_by_name[pkg])
-                    if f:
-                        dep.features = {f}
-                    deps.add(dep)
+                    for dep in deps_by_name[pkg]:
+                        dep = copy.deepcopy(dep)
+                        if f:
+                            dep.features = {f}
+                        deps.add(dep)
             deps_by_feature[feature] = (features, deps)
 
         mandatory_deps = set()
-        for dep in deps_by_name.values():
-            if dep.optional:
-                deps_by_feature[dep.name] = ({None}, {copy.deepcopy(dep)})
-            else:
-                mandatory_deps.add(copy.deepcopy(dep))
+        for name, deps in deps_by_name.items():
+            fdeps = set()
+            for dep in deps:
+                if dep.optional:
+                    fdeps.add(copy.deepcopy(dep))
+                else:
+                    mandatory_deps.add(copy.deepcopy(dep))
+            if fdeps:
+                deps_by_feature[name] = ({None}, fdeps)
         deps_by_feature[None] = (set(), mandatory_deps)
 
         if "default" not in deps_by_feature:
