@@ -199,6 +199,11 @@ def make_diff_metadata(crate, version, patch=False, store=False):
         shutil.copy2(cratef, os.path.join(os.getcwd(), f"{metadata.name}-{version}.crate"))
     return crate, diff, metadata
 
+def to_list(s):
+    if not s:
+        return []
+    return list(filter(None, (l.strip() for l in s.splitlines())))
+
 def main():
     parser = argparse.ArgumentParser("rust2rpm",
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -232,6 +237,7 @@ def main():
                                                store=args.store_crate)
 
     JINJA_ENV.globals["normalize_deps"] = normalize_deps
+    JINJA_ENV.globals["to_list"] = to_list
     template = JINJA_ENV.get_template("main.spec")
 
     if args.patch and len(diff) > 0:
@@ -286,6 +292,13 @@ def main():
         license, comments = licensing.translate_license(args.target, metadata.license)
         kwargs["license"] = license
         kwargs["license_comments"] = comments
+
+    conf = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    conf.read(".rust2rpm.conf")
+    if args.target not in conf:
+        conf.add_section(args.target)
+
+    kwargs["distconf"] = conf[args.target]
 
     spec_file = f"rust-{metadata.name}.spec"
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)

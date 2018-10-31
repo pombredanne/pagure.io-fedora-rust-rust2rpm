@@ -65,6 +65,9 @@ BuildRequires:  {{ req }}
   {% endfor %}
 %endif
 {% endif %}
+{% for req in to_list(distconf.get("buildrequires"))|sort %}
+BuildRequires:  {{ req }}
+{% endfor %}
 
 %global _description \
 {% if md.description is none %}
@@ -81,6 +84,9 @@ Summary:        %{summary}
   {% if rust_group is defined %}
 Group:          # FIXME
   {% endif %}
+  {% for req in to_list(distconf.get("bin.requires"))|sort %}
+Requires:       {{ req }}
+  {% endfor %}
 
 %description -n %{crate}
 %{summary}.
@@ -106,7 +112,13 @@ Group:          # FIXME
   {% do features.insert(0, None) %}
   {% do features.insert(1, "default") %}
   {% for feature in features %}
-    {% set pkg = "-n %%{name}+%s-devel"|format(feature) if feature is not none else "   devel" %}
+    {% if feature is none %}
+      {% set pkg = "   devel" %}
+      {% set conf_prefix = "lib" %}
+    {% else %}
+      {% set pkg = "-n %%{name}+%s-devel"|format(feature) %}
+      {% set conf_prefix = "lib+%s"|format(feature) %}
+    {% endif %}
 %package     {{ pkg }}
 Summary:        %{summary}
     {% if rust_group is defined %}
@@ -122,6 +134,9 @@ Requires:       cargo
 Requires:       {{ req }}
       {% endfor %}
     {% endif %}
+    {% for req in to_list(distconf.get("%s.requires"|format(conf_prefix)))|sort %}
+Requires:       {{ req }}
+    {% endfor %}
 
 %description {{ pkg }} %{_description}
 
