@@ -79,7 +79,7 @@ def detect_packager():
     if git is not None:
         name = subprocess.check_output([git, "config", "user.name"], universal_newlines=True).strip()
         email = subprocess.check_output([git, "config", "user.email"], universal_newlines=True).strip()
-        return "{} <{}>".format(name, email)
+        return f"{name} <{email}>"
 
     return None
 
@@ -108,23 +108,23 @@ def local_crate(crate, version):
 def download(crate, version):
     if version is None:
         # Now we need to get latest version
-        url = requests.compat.urljoin(API_URL, "crates/{}/versions".format(crate))
+        url = requests.compat.urljoin(API_URL, f"crates/{crate}/versions")
         req = requests.get(url)
         req.raise_for_status()
         versions = req.json()["versions"]
         version = next(version["num"] for version in versions if not version["yanked"])
 
     os.makedirs(CACHEDIR, exist_ok=True)
-    cratef_base = "{}-{}.crate".format(crate, version)
+    cratef_base = f"{crate}-{version}.crate"
     cratef = os.path.join(CACHEDIR, cratef_base)
     if not os.path.isfile(cratef):
-        url = requests.compat.urljoin(API_URL, "crates/{}/{}/download#".format(crate, version))
+        url = requests.compat.urljoin(API_URL, f"crates/{crate}/{version}/download#")
         req = requests.get(url, stream=True)
         req.raise_for_status()
         total = int(req.headers["Content-Length"])
         with remove_on_error(cratef), \
              open(cratef, "wb") as f:
-            for chunk in tqdm.tqdm(req.iter_content(), "Downloading {}".format(cratef_base),
+            for chunk in tqdm.tqdm(req.iter_content(), f"Downloading {cratef_base}".format(cratef_base),
                                    total=total, unit="B", unit_scale=True):
                 f.write(chunk)
     return cratef, crate, version
@@ -132,14 +132,14 @@ def download(crate, version):
 @contextlib.contextmanager
 def toml_from_crate(cratef, crate, version):
     with tempfile.TemporaryDirectory() as tmpdir:
-        target_dir = "{}/".format(tmpdir)
+        target_dir = f"{tmpdir}/"
         with tarfile.open(cratef, "r") as archive:
             for n in archive.getnames():
                 if not os.path.abspath(os.path.join(target_dir, n)).startswith(target_dir):
                     raise Exception("Unsafe filenames!")
             archive.extractall(target_dir)
-        toml_relpath = "{}-{}/Cargo.toml".format(crate, version)
-        toml = "{}/{}".format(tmpdir, toml_relpath)
+        toml_relpath = f"{crate}-{version}/Cargo.toml"
+        toml = f"{tmpdir}/{toml_relpath}"
         if not os.path.isfile(toml):
             raise IOError("crate does not contain Cargo.toml file")
         yield toml
@@ -270,7 +270,7 @@ def main():
         kwargs["include_provides"] = True
         kwargs["include_requires"] = True
     else:
-        assert False, "Unknown target {!r}".format(args.target)
+        assert False, f"Unknown target {args.target!r}"
 
     if args.target == "mageia":
         kwargs["pkg_release"] = "%mkrel 1"
@@ -303,10 +303,10 @@ def main():
     spec_file = f"rust-{metadata.name}.spec"
     spec_contents = template.render(md=metadata, patch_file=patch_file, **kwargs)
     if args.stdout:
-        print("# {}".format(spec_file))
+        print(f"# {spec_file}")
         print(spec_contents)
         if patch_file is not None:
-            print("# {}".format(patch_file))
+            print(f"# {patch_file}")
             print("".join(diff), end="")
     else:
         with open(spec_file, "w") as fobj:
