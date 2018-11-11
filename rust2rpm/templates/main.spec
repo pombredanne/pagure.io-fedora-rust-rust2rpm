@@ -179,4 +179,6 @@ which use {% if feature is not none %}"{{ feature }}" feature of {% endif %}"%{c
 %endif
 
 %changelog
-{% include target ~ "-changelog.spec.inc" %}
+{% if auto_changelog_entry %}
+  {% include target ~ "-changelog.spec.inc" %}
+{% endif %}

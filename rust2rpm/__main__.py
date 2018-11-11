@@ -209,6 +209,8 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--show-license-map", action="store_true",
                         help="Print license mappings and exit")
+    parser.add_argument("--no-auto-changelog-entry", action="store_true",
+                        help="Do not generate a changelog entry")
     parser.add_argument("-", "--stdout", action="store_true",
                         help="Print spec and patches into stdout")
     parser.add_argument("-t", "--target", action="store",
@@ -260,6 +262,11 @@ def main():
     else:
         raise ValueError("No bins and no libs")
     kwargs["include_devel"] = is_lib
+
+    if args.no_auto_changelog_entry:
+        kwargs["auto_changelog_entry"] = False
+    else:
+        kwargs["auto_changelog_entry"] = True
 
     if args.target in ("fedora", "mageia", "opensuse"):
         kwargs["include_build_requires"] = True
