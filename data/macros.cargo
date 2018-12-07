@@ -20,6 +20,9 @@ rustc = "%{__rustc}"\
 rustdoc = "%{__rustdoc}"\
 rustflags = %{__global_rustflags_toml}\
 \
+[install]\
+root = "%{buildroot}%{_prefix}"\
+\
 [term]\
 verbose = true\
 \
@@ -81,7 +84,6 @@ if %__cargo_is_bin; then                                            \
   %{shrink:%{__cargo} install                                       \
     %{__cargo_common_opts}                                          \
     --path .                                                        \
-    --root %{buildroot}%{_prefix}                                   \
     %{__cargo_parse_opts %{-n} %{-a} %{-f:-f%{-f*}}}                \
     %*                                                              \
   }\
