@@ -1,4 +1,8 @@
-%__cargo %{_bindir}/cargo
+# Since cargo 1.31, install only uses $CARGO_HOME/config, ignoring $PWD.
+#   https://github.com/rust-lang/cargo/issues/6397
+# But we can set CARGO_HOME locally, which is a good idea anyway to make sure
+# it never writes to ~/.cargo during rpmbuild.
+%__cargo %{_bindir}/env CARGO_HOME=.cargo %{_bindir}/cargo
 %__cargo_common_opts %{?_smp_mflags}
 %__cargo_inspector %{_bindir}/cargo-inspector
 
