@@ -31,11 +31,7 @@ License:        {{ license|default("# FIXME") }}
 {{ license_comments }}
 {% endif %}
 URL:            https://crates.io/crates/{{ crate }}
-{% if md.name != crate %}
-Source0:        https://crates.io/api/v1/crates/%{real_crate}/%{version}/download#/%{crate}-%{version}.crate
-{% else %}
-Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
-{% endif %}
+Source:         %{crates_source}
 {% if patch_file is not none %}
 {% if target == "opensuse" %}
 # PATCH-FIX-OPENSUSE {{ patch_file }} -- Initial patched metadata
@@ -161,9 +157,9 @@ which use {% if feature is not none %}"{{ feature }}" feature of {% endif %}"%{c
 
 %prep
 {% if md.name != crate %}
-%autosetup -n %{real_crate}-%{version} -p1
+%autosetup -n %{real_crate}-%{version_no_tilde} -p1
 {% else %}
-%autosetup -n %{crate}-%{version} -p1
+%autosetup -n %{crate}-%{version_no_tilde} -p1
 {% endif %}
 %cargo_prep
 

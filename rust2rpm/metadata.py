@@ -45,11 +45,13 @@ class Dependency:
                 # Any means any
                 continue
             ver = req.spec
-            if ver.prerelease:
-                raise NotImplementedError(f"Pre-release requirement is not supported: {ver}")
             if req.kind in (req.KIND_NEQ, req.KIND_EMPTY):
                 raise NotImplementedError(f"'!=' and empty kinds are not supported: {req}")
-            coerced = semver.Version.coerce(str(ver))
+            coerced = str(semver.Version.coerce(str(ver)))
+            if ver.prerelease:
+                coerced = coerced.replace("-", "~")
+                # This will advance us to closest stable version (2.0.0-beta.6 → 2.0.0)
+                ver = ver.next_patch()
             if req.kind == req.KIND_EQUAL:
                 req.kind = req.KIND_SHORTEQ
             if req.kind in (req.KIND_CARET, req.KIND_COMPATIBLE):
@@ -107,7 +109,11 @@ class Dependency:
 class Metadata:
     def __init__(self, name, version):
         self.name = name
-        self.version = version
+        self._version = version
+        version_normalized = Dependency._normalize_req(f"={self._version}")
+        if len(version_normalized) != 1:
+            raise Exception(f"Incorrect version: {self._version}")
+        self.version = version_normalized[0][1]
         self.license = None
         self.license_file = None
         self.readme = None
@@ -187,7 +193,7 @@ class Metadata:
     def provides(self, feature=None):
         if feature not in self.dependencies:
             raise KeyError(f"Feature {feature!r} doesn't exist")
-        return Dependency(self.name, f"={self.version}", features={feature})
+        return Dependency(self.name, f"={self._version}", features={feature})
 
     @classmethod
     def _resolve(cls, deps_by_feature, feature):
@@ -207,7 +213,7 @@ class Metadata:
             return self._resolve(self.dependencies, feature)[1]
         else:
             features, deps = self.dependencies[feature]
-            fdeps = set(Dependency(self.name, f"={self.version}", features={feature})
+            fdeps = set(Dependency(self.name, f"={self._version}", features={feature})
                         for feature in features)
             return fdeps | deps
 

@@ -37,6 +37,14 @@ import rust2rpm
      "crate(test) = 1.2.3"),
     (">= 1.2, < 1.5",
      "(crate(test) >= 1.2.0 with crate(test) < 1.5.0)"),
+    ("^2.0.0-alpha.6",
+     "(crate(test) >= 2.0.0~alpha.6 with crate(test) < 3.0.0)"),
+    ("^0.1.0-alpha.6",
+     "(crate(test) >= 0.1.0~alpha.6 with crate(test) < 0.2.0)"),
+    ("^0.0.1-alpha.6",
+     "(crate(test) >= 0.0.1~alpha.6 with crate(test) < 0.0.2)"),
+    ("^0.0.0-alpha.6",
+     "(crate(test) >= 0.0.0~alpha.6 with crate(test) < 0.0.1)"),
 ])
 def test_dependency(req, rpmdep):
     dep = rust2rpm.Dependency("test", req)
