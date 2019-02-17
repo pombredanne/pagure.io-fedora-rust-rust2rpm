@@ -74,7 +74,7 @@ if %__cargo_is_lib; then                                            \
   CRATE_VERSION=$(%__cargo_inspector --version Cargo.toml)          \
   REG_DIR=%{buildroot}%{cargo_registry}/$CRATE_NAME-$CRATE_VERSION  \
   %{__mkdir} -p $REG_DIR                                            \
-  %{__cargo} package -l | xargs %{__cp} --parents -a -t $REG_DIR    \
+  %{__cargo} package -l | xargs -d '\n' %{__cp} --parents -a -t $REG_DIR \
 %if ! %{with check}                                                 \
   %{__cp} -a Cargo.toml.orig $REG_DIR/Cargo.toml                    \
 %endif                                                              \
